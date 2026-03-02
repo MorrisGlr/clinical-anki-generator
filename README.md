@@ -55,5 +55,4 @@ This code is provided at no charge and users are responsible for verifying the a
 
 # Contact
 Morris A. Aguilar, Ph.D.<br>
-morrisglr@proton.me<br>
-@morrisglr.bsky.social
+<a href= https://www.linkedin.com/in/morris-a-aguilar/ >LinkedIn</a><br>

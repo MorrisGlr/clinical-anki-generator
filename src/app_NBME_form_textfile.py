@@ -15,7 +15,7 @@ load_dotenv()
 
 # Get the API key
 openai_api_key = os.getenv('OPENAI_API_KEY')
-client = OpenAI(api_key=openai_api_key)
+client = OpenAI(api_key=openai_api_key, timeout=120)
 
 # Function to extract question, multiple choice answers, and correct answer from a single docx file and return a dictionary.
 def extract_questions_and_answers(file_path):
@@ -73,7 +73,8 @@ def extract_questions_and_answers(file_path):
         
         # Store in the dictionary
         questions_dict[question_key] = [options_text, f"Correct answer: {correct_answer}"]
-
+    
+    print(f"Extracted {len(questions_dict)} questions and {len(answer_dict)} answers from the file.")
     return questions_dict
 
 
@@ -101,24 +102,22 @@ def generate_explanations(question, answer):
     start_time = time.time()
 
     try:
-      response = client.chat.completions.create(
-          model='chatgpt-4o-latest',
-          messages=[
-              {
-                  "role": "system",
-                  "content": prompt_markdown
-              },
-              {
-                  "role": "user",
-                  "content": question + '\n' + answer
-              }
-          ],
-          temperature=0.75,
-          max_tokens= 5096,
-          top_p=1,
-          frequency_penalty=0,
-          presence_penalty=0
-          )
+      response = client.responses.create(
+            model="o3-2025-04-16",
+            input=[
+                {
+                    "role": "system",
+                    "content": prompt_markdown
+                },
+                {
+                    "role": "user",
+                    "content": question + '\n' + answer
+                }
+            ],
+            #temperature=0.1,
+            max_output_tokens= 6384,
+            timeout=120
+            )
     finally:
         # Stop the status printing thread
         stop_event.set()
@@ -126,7 +125,7 @@ def generate_explanations(question, answer):
 
     # Calculate the elapsed time
     elapsed_time = time.time() - start_time
-    gen_text = response.choices[0].message.content
+    gen_text = response.output_text
     #gen_text = gen_text.replace("\t", "&emsp;").replace("\n", "<br>")
     # Wrap the content in a <div> or other HTML tag for better formatting
     gen_text = markdown.markdown(gen_text)
@@ -140,37 +139,71 @@ def generate_explanations(question, answer):
 
     # Print the elapsed time
     print(f"\nText generation completed in {elapsed_time:.2f} seconds.")
+    try:
+        usage_data = response.usage
+        print(f"Usage stats per flashcard: (input_tokens: {usage_data.input_tokens}, output_tokens: {usage_data.output_tokens}, total_tokens: {usage_data.total_tokens})")
+    except Exception as e:
+        print(f"Error extracting usage data: {e}")
     return gen_text
 
 # Directory paths
-wk_dir ='/Users/morris/github_projects/question_bank_anki_export'
-file_path = wk_dir+'/html_dump/surgery_form_4.txt'
+wk_dir ='/Users/morris/github_projects/HEART-HTML-to-Anki'
+file_path = wk_dir+'/html_dump/nmbe_s2ck_15.txt'
 output_dir = wk_dir+'/gen_anki'
 
-prompt_markdown = """You are a biomedical/bioclinical and medical education expert specializing in preparing students for NBME shelf exams. 
+prompt_markdown = """# Role
+- You are a helpful biomedical/bioclinical and medical education expert specializing in preparing students for NBME shelf exams and Step 2CK. 
+- Teach students like an expert tutor and clinical attending physician that is supportive and encouraging.
 
 # Objective
-- Your goal is to provide concise, high-yield explanations that enhance understanding and focus on core concepts critical for exam success.
-- Select the correct answer according to accurate evidence-based medicine.
-- Follow the explanation rubric provided below.
-- **Prioritize accuracy and factuality in your responses.**
-- I will submit the questions, their corresponding answer choices, and the correct answers to you one at a time.
+- Your goal is to provide concise, high-yield explanations for NBME style questions that enhance student understanding and focus on core concepts critical for exam success.
 
+# Instructions
+- **Follow the explanation rubric and instructions provided below.**
+- Process each question and answer. I will submit the questions, their corresponding answer choices, and the correct answer to you one at a time.
+- Your job is the explain the **correct answer of the question according to the answer key that is provided to you.**
+- **DO NOT select the correct answer yourself. I will provide it to you.**
+- Provide a detailed explanation for each question to help students understand the reasoning behind the correct answer (provided by user/student), why the incorrent answers are wrong, and the clinical concepts involved.
+
+# Criteria
+- **Prioritize accuracy and factuality in your responses.**
+- Ground your explanations on established medical knowledge, clinical guidelines, reputatable sources, and high-yield concepts relevant to USMLE Step 2CK and NBME shelf exams.
+- Give it your all and do not hold back.
+- If you are unsure about something, please let me know.
+- Be thorough in your explanations.
+- Think deeply about the clinical concepts and testing strategies involved.
+- Stay organized and structured in your explanations.
+- Logically connect the details in the vignette, critical reasoning, pathophysiology, treatments, and diagnositic tests to the correct answer choice that is provided.
+- If you use abreviations or acronyms, please define them the first time you use them.
 ## Explanation Rubric
 ### Correct Answer Selection
-- [place correct answer here]
+- [place the correct answer that is provided to you here]
 ### Vignette Analysis
-- Identify and explain key words or phrases in the vignette critical for diagnosing the condition.
+- Identify and explain key words, phrases, and clues in the vignette critical for diagnosing the condition.
 - Clearly describe how specific details in the vignette help narrow the differential diagnosis, highlighting what to rule in and out.
+- Point out the pertinent positives and negatives in the vignette that lead to the correct answer.
+- Note the patterns and algorithms that are essential for recognizing the condition being tested.
+- Also provide a cognitve and metacognitive analysis of the vignette, including how to approach similar questions in the future with a framework.
 ### Clinical Critical Reasoning
-- Emphasize pattern recognition, clinical reasoning steps, and common pitfalls to avoid.
-- Correct Answer Explanation: Provide a focused explanation of the reasoning behind the correct answer. 
-- Outline the clinical thought process, linking key vignette details to the correct choice. Highlight the core concept or "takeaway message" that the question is testing.
-### Pathophysiology and Treatment Review
+- Emphasize pattern recognition, management algorithms, clinical reasoning steps, and common pitfalls to avoid.
+- Correct Answer Explanation: Provide a focused explanation of the reasoning behind the correct answer **that is provided to you by the user**. 
+- Outline the clinical thought process in a step-wise approach linking key vignette details to the correct choice.
+- Highlight the core concept or "takeaway message" that the question is testing.
+- Note what would need to be documented in the medical record if this were a real patient encounter.
+### Pathophysiology Review
 - Balance between a concise and detailed review of the disease’s pathophysiology, including etiology, risk factors, mechanisms, and clinical manifestations.
 - The level of detail needs to be appropriate for the content covered on USLME STEP 2 exams and in UWorld STEP 2 exam practice questions.
+### Treatments and Diagnostic Tests Review
+- discuss management algorithms.
 - Summarize the treatment approach, including first-line and second-line treatments, and name specific drugs if applicable (avoid saying a medication category only; give exact drug names in that category).
+- If applicable, include imaging studies, lab tests, or other diagnostic tools that are relevant to the vignette.
+- If labs or imaging are needed for the diagnosis, please justify their use in the context of the vignette and how it would affect the management of the patient.
 - Connect these pieces of information logically, illustrating how they lead to the clinical presentation in the vignette.
+- If antibiotics are mentioned, please explain why they are used. Provide a logical framework for their use in the context of the vignette and how to logically connect them to the clinical presentation so that it is easy to recall during exams.
+### Memorization Tips
+- Provide mnemonics, acronyms, or other memory aids to help students retain the key concepts.
+- Suggest ways to remember the critical details, such as common associations or patterns that can help in recalling the information during exams.
+- Perhaps provide a memory palace or visualization technique that can help students remember the key points.
 ### Incorrect Answer Analysis
 - For each incorrect option, explain the clinical findings, history details, diagnostic test results, and treatment approaches (including medications, if applicable) that would be expected if the option were correct.
 - Highlight the key differences between these expected findings and those in the vignette.
@@ -197,13 +230,13 @@ with open(output_file_path, 'w', encoding='utf-8') as output_file:
         answer_list_str = content[0]
         back_side = correct_answer_str+ '</br></br>' + answer_list_str
         #print(f"Question: {question}\nOptions:\n{content[0]}\n{content[1]}\n")
-        gen_text = generate_explanations(question, correct_answer_str + answer_list_str)
+        gen_text = generate_explanations(question, correct_answer_str+ '</br></br>' + answer_list_str)
         back_side = back_side + '</br></br>' + gen_text
         anki_format_text = format_for_anki(question, back_side)
         output_file.write(anki_format_text + '\n')
         # Debugging output to verify correct processing
         print(f"Processed NMBE form question.")
-        print(f"Front side: {question[:70]}")
-        print(f"Back side: {back_side[:70]}"+"\n")
+        print(f"Front side of card preview: {question[:70]}")
+        print(f"Back side of card preview: {back_side[:70]}"+"\n")
 
 print(f"Done. Anki flashcards have been saved to {output_file_path}")

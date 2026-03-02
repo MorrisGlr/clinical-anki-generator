@@ -168,7 +168,7 @@ def generate_explanations(question, answer):
 
     try:
       response = client.chat.completions.create(
-          model='chatgpt-4o-latest',
+          model='o4-mini-2025-04-16',
           messages=[
               {
                   "role": "system",
