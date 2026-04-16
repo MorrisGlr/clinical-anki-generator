@@ -1,4 +1,5 @@
 """Tests for the NBME text-file parser (heart/parsers/nbme.py)."""
+import logging
 from pathlib import Path
 
 from heart.core import format_for_anki
@@ -86,3 +87,22 @@ def test_format_for_anki_tab_separated():
 def test_format_for_anki_no_trailing_newline():
     result = format_for_anki("Front", "Back")
     assert not result.endswith("\n")
+
+
+ALT_FIXTURE = Path(__file__).parent / "fixtures" / "nbme_sample_alt.txt"
+ALT_CONTENT = ALT_FIXTURE.read_text(encoding="utf-8")
+
+
+def test_alt_fixture_uppercase_choices_parsed(caplog):
+    with caplog.at_level(logging.WARNING, logger="heart.core"):
+        results = parse(ALT_CONTENT, str(ALT_FIXTURE))
+    assert len(results) == 2
+    assert "Peripheral neuropathy" in results[0].correct_answer or results[0].correct_answer
+
+
+def test_alt_fixture_answers_header_fallback(caplog):
+    with caplog.at_level(logging.WARNING, logger="heart.core"):
+        results = parse(ALT_CONTENT, str(ALT_FIXTURE))
+    assert len(results) == 2
+    assert "Fallback pattern matched" in caplog.text
+    assert "nbme:answer_key" in caplog.text

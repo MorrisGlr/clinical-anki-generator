@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from heart.core import ParsedQuestion
+from heart.core import ParsedQuestion, try_selectors
 
 SYSTEM_PROMPT = (
     "You are a medical education expert specializing in preparing students for NBME shelf"
@@ -32,14 +32,21 @@ SYSTEM_PROMPT = (
     " completeness of enrichment_markdown. 1.0 = fully confident, 0.0 = highly uncertain."
 )
 
-# All four known CSS class variants for the correct-answer div, tried in order.
-_CORRECT_ANSWER_CLASS_VARIANTS = [
-    "container--CKAXW correctAnswer--xNrke",
-    "container--CKAXW pointer--eMKos correctAnswer--xNrke",
-    "container--CKAXW pointer--eMKos correctAnswer--xNrke",
-    "-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer",
+# All known CSS class variants for the correct-answer div, tried in order.
+# Preserve all known-good variants; append new ones as selectors break.
+_CORRECT_ANSWER_SELECTORS = [
+    {"class_": "container--CKAXW correctAnswer--xNrke"},
+    {"class_": "container--CKAXW pointer--eMKos correctAnswer--xNrke"},
+    {"class_": "-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer"},
+    {"class_": "correctAnswer"},
+    {"attrs": {"aria-checked": "true"}},
 ]
-_EXPLANATION_DIV_CLASS = "-f8b48b6542a07-explanationContainer"
+_EXPLANATION_SELECTORS = [
+    {"class_": "-f8b48b6542a07-explanationContainer"},
+    {"class_": "explanationContainer"},
+    {"attrs": {"aria-label": "explanation"}},
+    {"id": "explanation"},
+]
 
 
 def _question_id_from_path(file_path: str) -> str:
@@ -57,7 +64,14 @@ def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     soup = BeautifulSoup(content, "html.parser")
     question_id = _question_id_from_path(file_path)
 
-    question_div = soup.find("div", id=question_id)
+    question_selectors = [
+        {"id": question_id},
+        {"attrs": {"data-testid": "question-stem"}},
+        {"attrs": {"role": "main"}},
+    ]
+    question_div = try_selectors(
+        soup, question_selectors, context=f"amboss:question({question_id})"
+    )
     question_str = question_div.get_text(separator=" ", strip=True) if question_div else ""
     question_str = question_str.replace("\n", " ")
     try:
@@ -66,22 +80,20 @@ def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     except IndexError:
         print(f"Warning: Did not find a number at start of question for {question_id}")
 
-    correct_answer_str = ""
-    for css_class in _CORRECT_ANSWER_CLASS_VARIANTS:
-        div = soup.find("div", class_=css_class)
-        if div:
-            correct_answer_str = div.get_text(separator=" ", strip=True)
-            break
-    if not correct_answer_str:
-        print(f"Warning: Correct answer not found for question {question_id}")
+    correct_answer_div = try_selectors(
+        soup, _CORRECT_ANSWER_SELECTORS, context="amboss:correct_answer"
+    )
+    correct_answer_str = (
+        correct_answer_div.get_text(separator=" ", strip=True) if correct_answer_div else ""
+    )
     correct_answer_str = correct_answer_str.replace("\n", " ")
     correct_answer_str = correct_answer_str.replace("Give feedback", "")
     correct_answer_str += "</br>"
     correct_answer_str = "Correct Answer: " + correct_answer_str
 
-    explanation_divs = soup.find_all("div", class_=_EXPLANATION_DIV_CLASS)
-    if not explanation_divs:
-        print(f"Warning: Explanation not found for question {question_id}")
+    explanation_divs = try_selectors(
+        soup, _EXPLANATION_SELECTORS, find_all=True, context="amboss:explanation"
+    )
     explanation_str = "</br></br>".join(
         div.get_text(separator=" ", strip=True) for div in explanation_divs
     )

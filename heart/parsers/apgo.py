@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from heart.core import ParsedQuestion
+from heart.core import ParsedQuestion, try_selectors
 
 SYSTEM_PROMPT = (
     "You are a savvy expert with medical knowledge that trains medical students for NMBE"
@@ -30,19 +30,34 @@ SYSTEM_PROMPT = (
     " completeness of enrichment_markdown. 1.0 = fully confident, 0.0 = highly uncertain."
 )
 
-_QUESTION_DIV_ID = "questionText"
-_CORRECT_ANSWER_DIV_CLASS = (
-    "omitted-answer content d-flex align-items-start flex-column ng-star-inserted"
-)
-_ANSWER_LIST_DIV_ID = "answerContainer"
-_EXPLANATION_DIV_ID = "explanation-container"
+_QUESTION_SELECTORS = [
+    {"id": "questionText"},
+    {"id": "question-text"},
+    {"attrs": {"data-testid": "question-text"}},
+]
+_CORRECT_ANSWER_SELECTORS = [
+    {"class_": "omitted-answer content d-flex align-items-start flex-column ng-star-inserted"},
+    {"class_": "omitted-answer content d-flex align-items-start flex-column"},
+    {"class_": "omitted-answer"},
+    {"attrs": {"aria-checked": "true"}},
+]
+_ANSWER_LIST_SELECTORS = [
+    {"id": "answerContainer"},
+    {"id": "answer-container"},
+    {"class_": "answerContainer"},
+]
+_EXPLANATION_SELECTORS = [
+    {"id": "explanation-container"},
+    {"class_": "explanation-container"},
+    {"id": "explanation"},
+]
 
 
 def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     """Extract question fields from APGO HTML content."""
     soup = BeautifulSoup(content, "html.parser")
 
-    question_div = soup.find("div", id=_QUESTION_DIV_ID)
+    question_div = try_selectors(soup, _QUESTION_SELECTORS, context="apgo:question")
     question_str = question_div.get_text(separator=" ", strip=True) if question_div else ""
     question_str = question_str.replace("\n", " ")
     try:
@@ -50,7 +65,9 @@ def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     except IndexError:
         pass
 
-    correct_answer_div = soup.find("div", class_=_CORRECT_ANSWER_DIV_CLASS)
+    correct_answer_div = try_selectors(
+        soup, _CORRECT_ANSWER_SELECTORS, context="apgo:correct_answer"
+    )
     correct_answer_str = (
         correct_answer_div.get_text(separator=" ", strip=True) if correct_answer_div else ""
     )
@@ -58,7 +75,9 @@ def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     correct_answer_str = correct_answer_str.replace("Omitted ", " ")
     correct_answer_str += "</br>"
 
-    answer_list_divs = soup.find_all("div", id=_ANSWER_LIST_DIV_ID)
+    answer_list_divs = try_selectors(
+        soup, _ANSWER_LIST_SELECTORS, find_all=True, context="apgo:answer_list"
+    )
     answer_list_str = "".join(
         f"{chr(65 + i)}. {div.get_text(separator=' ', strip=True)}"
         for i, div in enumerate(answer_list_divs)
@@ -71,7 +90,9 @@ def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     answer_list_str = answer_list_str.replace("A. A. ", "A. ")
     answer_list_str = "</br>" + answer_list_str
 
-    explanation_divs = soup.find_all("div", id=_EXPLANATION_DIV_ID)
+    explanation_divs = try_selectors(
+        soup, _EXPLANATION_SELECTORS, find_all=True, context="apgo:explanation"
+    )
     explanation_str = "</br></br>".join(
         div.get_text(separator=" ", strip=True) for div in explanation_divs
     )

@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import sys
 import threading
@@ -7,8 +8,10 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import markdown as _markdown
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel
@@ -33,6 +36,81 @@ class ParsedQuestion:
     answer_list: str
     explanation: str
     image_paths: list[str] = field(default_factory=list)
+
+
+def try_selectors(
+    soup: BeautifulSoup,
+    candidates: list[dict],
+    tag: str = "div",
+    find_all: bool = False,
+    context: str = "",
+) -> Any:
+    """Try BeautifulSoup selector dicts in order; log WARNING when a fallback fires.
+
+    Each candidate is a dict of keyword args passed to soup.find() or soup.find_all().
+    Primary (index 0) match is silent. Fallback matches and total failure both emit WARNING.
+    Returns None (find) or [] (find_all) when all candidates fail.
+    """
+    for i, selector_kwargs in enumerate(candidates):
+        if find_all:
+            result = soup.find_all(tag, **selector_kwargs)
+            if result:
+                if i > 0:
+                    logger.warning(
+                        "Fallback selector matched for %s: %s", context, selector_kwargs
+                    )
+                else:
+                    logger.debug("Primary selector matched for %s", context)
+                return result
+        else:
+            result = soup.find(tag, **selector_kwargs)
+            if result:
+                if i > 0:
+                    logger.warning(
+                        "Fallback selector matched for %s: %s", context, selector_kwargs
+                    )
+                else:
+                    logger.debug("Primary selector matched for %s", context)
+                return result
+    logger.warning("All selectors failed for %s. Field will be empty.", context)
+    return [] if find_all else None
+
+
+def try_patterns(
+    content: str,
+    candidates: list[str],
+    flags: int = 0,
+    find_all: bool = False,
+    context: str = "",
+) -> Any:
+    """Try regex pattern strings in order; log WARNING when a fallback fires.
+
+    Primary (index 0) match is silent. Fallback matches and total failure both emit WARNING.
+    Returns None (search) or [] (findall) when all candidates fail.
+    """
+    for i, pattern in enumerate(candidates):
+        if find_all:
+            result = re.findall(pattern, content, flags)
+            if result:
+                if i > 0:
+                    logger.warning(
+                        "Fallback pattern matched for %s: %r", context, pattern
+                    )
+                else:
+                    logger.debug("Primary pattern matched for %s", context)
+                return result
+        else:
+            result = re.search(pattern, content, flags)
+            if result:
+                if i > 0:
+                    logger.warning(
+                        "Fallback pattern matched for %s: %r", context, pattern
+                    )
+                else:
+                    logger.debug("Primary pattern matched for %s", context)
+                return result
+    logger.warning("All patterns failed for %s. Field will be empty.", context)
+    return [] if find_all else None
 
 
 def _status_spinner(stop_event: threading.Event) -> None:
@@ -122,11 +200,22 @@ def run_pipeline(
         file_pairs = [(f.read_text(encoding="utf-8"), str(f)) for f in html_files]
 
     card_num = 0
+    skipped = 0
     with open(output_file_path, "w", encoding="utf-8") as output_file:
         for content, file_path in file_pairs:
             parsed_questions = parse_fn(content, file_path)
             for pq in parsed_questions:
                 card_num += 1
+                if not pq.question or not pq.correct_answer:
+                    logger.warning(
+                        "Skipping card %d from %s: question=%s correct_answer=%s",
+                        card_num,
+                        file_path,
+                        bool(pq.question),
+                        bool(pq.correct_answer),
+                    )
+                    skipped += 1
+                    continue
                 print(f"Processing card {card_num}")
 
                 if anki_media_path and pq.image_paths:
@@ -164,4 +253,6 @@ def run_pipeline(
                 print(f"Front side: {pq.question[:70]}")
                 print(f"Back side: {back_side[:70]}\n")
 
-    print(f"Done. Anki flashcards have been saved to {output_file_path}")
+    processed = card_num - skipped
+    print(f"Done. Processed {processed} cards, skipped {skipped}.")
+    print(f"Anki flashcards have been saved to {output_file_path}")

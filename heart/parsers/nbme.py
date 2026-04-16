@@ -1,6 +1,6 @@
 import re
 
-from heart.core import ParsedQuestion
+from heart.core import ParsedQuestion, try_patterns
 
 SYSTEM_PROMPT = """# Role
 - You are a helpful biomedical/bioclinical and medical education expert specializing in preparing students for NBME shelf exams and Step 2CK.
@@ -66,15 +66,31 @@ Your response must be a JSON object with these fields:
 - tags (array of exactly 6 strings): a mix of USMLE controlled-vocabulary organ-system terms (e.g. cardiovascular, respiratory, gastrointestinal, renal, endocrine, hematology, infectious_disease, neurology, musculoskeletal, dermatology, psychiatry, obstetrics_gynecology, pediatrics, surgery, pharmacology) and free-text subject or mechanism terms specific to this question (e.g. beta_blocker, heart_failure, sodium_balance). Normalize all tags to lowercase with underscores. Provide exactly 6.
 - confidence (float 0.0–1.0): your self-reported confidence in the accuracy and completeness of enrichment_markdown. 1.0 = fully confident, 0.0 = highly uncertain."""
 
-_QUESTION_PATTERN = r"(\d+)\.\s(.*?)\n([a-f]\..*?)(?=\n\d+\.\s|\nAnswer Key:)"
-_ANSWER_KEY_PATTERN = r"Answer Key:\n([\s\S]+)"
+# Question block patterns: try lowercase options first, then uppercase, then lettered variants.
+_QUESTION_PATTERNS = [
+    r"(\d+)\.\s(.*?)\n([a-f]\..*?)(?=\n\d+\.\s|\nAnswer Key:)",
+    r"(\d+)\.\s(.*?)\n([A-F]\..*?)(?=\n\d+\.\s|\nAnswer Key:)",
+    r"(\d+)\)\s(.*?)\n([a-f]\).*?)(?=\n\d+\)|\nAnswer Key:)",
+    r"(\d+)\)\s(.*?)\n([A-F]\).*?)(?=\n\d+\)|\nAnswer Key:)",
+]
+# Answer key patterns: handle header spelling variants.
+_ANSWER_KEY_PATTERNS = [
+    r"Answer Key:\n([\s\S]+)",
+    r"Answers:\n([\s\S]+)",
+    r"Answer key:\n([\s\S]+)",
+    r"ANSWER KEY:\n([\s\S]+)",
+]
 
 
 def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     """Extract questions from NBME practice form text content."""
-    matches = re.findall(_QUESTION_PATTERN, content, re.DOTALL)
+    matches = try_patterns(
+        content, _QUESTION_PATTERNS, flags=re.DOTALL, find_all=True, context="nbme:questions"
+    ) or []
 
-    answer_key_match = re.search(_ANSWER_KEY_PATTERN, content)
+    answer_key_match = try_patterns(
+        content, _ANSWER_KEY_PATTERNS, context="nbme:answer_key"
+    )
     if not answer_key_match:
         print(f"Warning: Answer key not found in {file_path}")
         return []

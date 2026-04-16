@@ -1,4 +1,5 @@
 """Tests for the UWorld HTML parser (heart/parsers/uworld.py)."""
+import logging
 from pathlib import Path
 
 from heart.core import format_for_anki
@@ -88,3 +89,17 @@ def test_format_for_anki_empty_tags_omits_third_column():
 def test_format_for_anki_none_tags_omits_third_column():
     result = format_for_anki("Front", "Back", tags=None)
     assert len(result.split("\t")) == 2
+
+
+FALLBACK_FIXTURE = Path(__file__).parent / "fixtures" / "uworld_sample_fallback.html"
+FALLBACK_HTML = FALLBACK_FIXTURE.read_text(encoding="utf-8")
+
+
+def test_fallback_fixture_correct_answer_extracted(caplog):
+    with caplog.at_level(logging.WARNING, logger="heart.core"):
+        results = parse(FALLBACK_HTML, str(FALLBACK_FIXTURE))
+    assert len(results) == 1
+    pq = results[0]
+    assert "Subarachnoid hemorrhage" in pq.correct_answer
+    assert "Fallback selector matched" in caplog.text
+    assert "uworld:correct_answer" in caplog.text

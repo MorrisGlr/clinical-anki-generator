@@ -1,4 +1,5 @@
 """Tests for the AMBOSS HTML parser (heart/parsers/amboss.py)."""
+import logging
 from pathlib import Path
 
 from heart.core import format_for_anki
@@ -70,3 +71,16 @@ def test_format_for_anki_tab_separated():
 def test_format_for_anki_no_trailing_newline():
     result = format_for_anki("Front", "Back")
     assert not result.endswith("\n")
+
+
+FALLBACK_FIXTURE = Path(__file__).parent / "fixtures" / "amboss_sample_fallback.html"
+FALLBACK_HTML = FALLBACK_FIXTURE.read_text(encoding="utf-8")
+
+
+def test_fallback_fixture_explanation_extracted_via_semantic_class(caplog):
+    with caplog.at_level(logging.WARNING, logger="heart.core"):
+        results = parse(FALLBACK_HTML, str(FALLBACK_FIXTURE))
+    assert len(results) == 1
+    pq = results[0]
+    assert "mononucleosis" in pq.explanation.lower() or "epstein" in pq.explanation.lower()
+    assert "Fallback selector matched" in caplog.text
