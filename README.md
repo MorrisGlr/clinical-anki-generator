@@ -1,27 +1,75 @@
-# HEART – HTML‐to‐Anki Enhanced Human Explanation & Reasoning Tool
+# HEART
 
-[![Tests](https://github.com/MorrisGlr/HEART/actions/workflows/tests.yml/badge.svg)](https://github.com/MorrisGlr/HEART/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/MorrisGlr/HEART/branch/main/graph/badge.svg)](https://codecov.io/gh/MorrisGlr/HEART)
+[![Tests](https://github.com/MorrisGlr/clinical-anki-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/MorrisGlr/clinical-anki-generator/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/MorrisGlr/clinical-anki-generator/branch/main/graph/badge.svg)](https://codecov.io/gh/MorrisGlr/clinical-anki-generator)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
-Medical students must maximize their time engaging with [active recall](https://pmc.ncbi.nlm.nih.gov/articles/PMC4031794/) of large volumes of clinical information during their third-year clerkships and for the clerkships' [shelf exams](https://www.lecturio.com/blog/what-are-shelf-exams-and-how-do-i-study-for-them/#elementor-toc__heading-anchor-0). Nonetheless, many students (I among them) with their full clinical schedules struggle to allocate time to assemble highly informative [Anki](https://apps.ankiweb.net/) flashcard decks (a popular digital flashcard app among medical students), edit pre-made decks to suit their learning needs, followed by active studying in the evening. Frustrated by my own late-night copy-paste marathons at the beginning of 2024, I built a Python CLI (HEART) that leverages the OpenAI API to transform full UWorld vignettes into AI-enhanced Anki cards—complete with clinical reasoning breakdowns, distractor insights, and study-optimized prompts—with a single command.
 
-## Value and Advantages
-### Maximize UWorld's Utility
-- Adding Anki's spaced repetition and knowledge-gap prioritization algorithm to *whole* UWorld questions (clinical vignettes) and their corresponding answer explanations.
-- Replaces pre-made Anki flashcard desks that contain isolated facts with no explained relationships to other clinical information.
+**Transform saved UWorld questions into AI-enhanced Anki flashcards in under 5 minutes. Built for MS3/MS4 clerkship and shelf exam prep.**
 
-### Additional insights *not* Provided by UWorld
-- Breakdowns of the clinical vignettes that describe how learners should apply their clinical reasoning as they work through the question.
-- Expand on why incorrect answer choices are wrong and would have been correct in other clinical scenarios.
-- Discussion on first/second/third-line treatments and diagnostic tests.
+> **Note on the repo name:** This repository is named `clinical-anki-generator` to help medical students find it via GitHub search. The tool itself is called **HEART** (HTML-to-Anki Enhanced Human Explanation & Reasoning Tool) -- that is the name of the CLI command you will run and the name used throughout this documentation.
 
-### Time Reclamation for Active Learning
-- I reduced the Anki deck assembly time of UWorld questions from 1-2 hours to *less than 5 minutes.* (40 questions at a time.)
-- Eliminates repetitive copy-pasting from learning resources and the need to format text. Hitting `cmd+c` and `cmd+v` is not active learning.
-- The app generates an import file that is compatible with Anki, so you can easily import the generated flashcards in bulk into your Anki deck.
+---
+
+## Demo
+
+<!-- Demo GIF recording in progress. Will show: saved UWorld HTML page going in, enriched Anki card coming out. -->
+
+*Demo coming soon. See [What You Get](#what-you-get) below for a description of the output.*
+
+---
+
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/MorrisGlr/clinical-anki-generator.git && cd clinical-anki-generator
+pip install -e .
+
+# 2. Add your OpenAI API key
+cp .env.example .env   # then open .env and paste your key
+
+# 3. Drop saved UWorld HTML files into html_dump/ and run
+heart --platform uworld --tags
+```
+
+Import the generated file from `gen_anki/` into Anki using File > Import.
+
+---
+
+## What You Get
+
+Each processed UWorld question becomes an Anki card with:
+
+- **Vignette analysis** -- a step-by-step breakdown of how to work through the clinical stem
+- **Distractor logic** -- why each wrong answer is wrong and what clinical scenario would make it correct
+- **Pathophysiology review** -- the underlying mechanism connecting the question to its answer
+- **First/second/third-line treatment hierarchy** -- when applicable
+- **Auto-generated tags** -- six normalized tags per card (e.g., `cardiology heart_failure diuretics renal shelf-exam uworld`) for structured review in Anki
+- **Confidence score** -- logged per card so you can spot questions where the LLM is less certain
+- **Optional validation pass** -- a second lightweight LLM call flags cards that may contain errors (`--validate`)
+
+### Format options
+
+| Flag | Output |
+|---|---|
+| `--format basic` (default) | Question stem on front, full enrichment on back |
+| `--format cloze` | AI-generated cloze deletion stem, enrichment on back |
+| `--format choices-front` | Question + answer choices on front |
+
+### Supported platforms
+
+| Platform | Input format |
+|---|---|
+| UWorld | Locally saved HTML (`cmd+s` / `ctrl+s`) |
+| AMBOSS | Locally saved HTML |
+| APGO | Locally saved HTML |
+| NBME | Downloaded `.txt` file |
+
+---
 
 ## How It Works
+
 <table>
   <tr>
     <td align="center">
@@ -30,34 +78,65 @@ Medical students must maximize their time engaging with [active recall](https://
   </tr>
 </table>
 
-1. The user accesses a UWorld question and its answer explanation in thier browser like usual and saves the HTML page to their computer simply by using the keyboard shortcut `cmd+s` on MacOS or `ctrl+s` on Windows.
-2. HEART reads the HTML files in the HEART `html_dump` directory and extracts the question, multiple choice answers, and answer explanation text in bulk. Each HTML file yields one flashcard.
-3. The question, multiple choice options, and correct answer is then sent to the OpenAI API, which generates a breakdown of the clinical vignette, distractor insights, and study-optimized prompts.
-4. Once the OpenAI API returns the generated text, HEART formats the assmebles the flashcard with the question on the "front-side" and the original explanations and generated text on the "back-side" of the card.
-5. Then a single Anki import file is generated in the `import_files` directory that contains all of the processed questions and their corresponding generated text. The user can then import the file into Anki using the Anki desktop app.
+1. Open a UWorld question in your browser and save the page (`cmd+s` on macOS, `ctrl+s` on Windows). Drop the saved HTML file into the `html_dump/` directory.
+2. Run `heart --platform uworld`. HEART reads all HTML files in `html_dump/` and extracts the question stem, answer choices, correct answer, and official explanation using BeautifulSoup4.
+3. Each question is sent to the OpenAI API, which returns clinical reasoning enrichment as structured JSON (vignette analysis, distractor logic, pathophysiology, tags, confidence).
+4. HEART assembles the card: question on the front, original explanation plus enriched content on the back, rendered as Anki-compatible HTML.
+5. A single tab-separated import file is written to `gen_anki/`. Import it into Anki via File > Import. Images from `*_files/` companion directories are copied to Anki's media folder automatically.
 
-## Tools and Techniques Used
-### Automated HTML Parsing & Batch Extraction  
-- **[BeautifulSoup4](https://pypi.org/project/beautifulsoup4/) for Robust Scraping**  
-   - Reliably crawls saved UWorld HTML dumps to extract question stems, answer choices and explanations—eliminating error-prone manual copy-paste and ensuring 100% consistency across hundreds of cards.
-   - It scales effortlessly as question banks grow.
-- Leverages the `markdown` library to convert LLM outputs into clean, Anki-compatible HTML—preserving headings, lists, and emphasis without manual tweaks.  
+---
 
-### AI-Driven Clinical Reasoning Enrichment  
-- **[OpenAI API](https://platform.openai.com/docs/overview) Integration**  
-  Sends each question + answers to the OpenAI endpoint and retrieves targeted “Vignette Analysis,” “Differential Diagnosis Logic” and “Pathophysiology Review,” transforming raw Q&A into high-value learning narratives.  
- 
-### User-Centered CLI & Workflow Reliability  
-- Implements a lightweight status thread that prints “Generating text…” during API calls—keeping users informed and during longer processing runs. This is followed by printing a truncated preview of the front and back of the generated flashcard.
+## Why This Exists
 
-## Usage
-1. After cloning the repository, create a conda environment using the `myenv.yml` file. Activate the environment using the command `conda activate `.
-2. Assign your OpenAI API key to the `OPENAI_API_KEY` environment variable in your `.env` file at the root of the project directory. Note: this is separate from having a ChatGPT Plus account and one needs to add funds to their [OpenAI Platform](https://platform.openai.com/) account to use the API.
-3. While in the root of the project directory, run the app using the command `python app.py` in your terminal.
+Medical students on third- and fourth-year clerkships need to review large volumes of clinical reasoning under time pressure. UWorld questions are the gold standard for shelf exam prep -- but building Anki decks from them manually means a nightly copy-paste marathon after a full clinical day.
+
+HEART reduces deck assembly from 1-2 hours to under 5 minutes for 40 questions, and adds clinical reasoning depth that UWorld's explanations alone do not provide.
+
+### Why not use a SaaS tool like MedAnkiGen?
+
+| | HEART | Cloud-based SaaS tools |
+|---|---|---|
+| Cost | Free (pay only for OpenAI API tokens, typically $0.01-0.10/card) | Monthly subscription |
+| Privacy | Fully local -- your UWorld content never leaves your machine | Uploaded to third-party servers |
+| Open source | Yes -- fork it, extend it, inspect it | No |
+| Customizable | Yes -- modify prompts, add parsers, change output format | No |
+| Clinical reasoning enrichment | Vignette analysis + distractor logic per question | Generic flashcard generation |
+
+The privacy point is not incidental. Many medical students are cautious about uploading question-bank content to third-party services, both for IP reasons and because study material often contains notes and annotations tied to their learning. HEART processes everything locally with your own API key.
+
+---
 
 ## Limitations and Disclaimers
-This code is provided at no charge and users are responsible for verifying the accuracy of the information provided by the app. UWorld is not affiliated with this project. UWorld copyrighted material accessed by this app is used under the [fair use doctrine](https://copyrightalliance.org/faqs/what-is-fair-use/) for the purposes of individual education for those with a paid personal license to UWorld study material. This project is not designed (nor has the capabilities) to distribute copywrited material. Copywrited material is not stored in this repository.
 
-# Contact
+- **Accuracy:** This tool is provided as-is. AI-generated clinical content may contain errors. Always verify against primary sources before relying on any card for exam preparation.
+- **UWorld terms of service:** HEART processes HTML pages that you have personally saved from your own paid UWorld subscription. You must hold an active paid personal UWorld license to use this tool with UWorld content. No UWorld content is stored in this repository or redistributed by this tool. HEART is not affiliated with, endorsed by, or officially connected to UWorld in any way. This usage is intended to fall within the fair use doctrine for individual education; consult a lawyer if you have legal questions.
+- **Platform fragility:** UWorld, AMBOSS, and APGO use generated CSS class names that can change with any frontend deployment. If parsing breaks after a platform update, open an issue.
+- **Image handling:** Image copying is confirmed for UWorld's `*_files/` companion directories. AMBOSS and APGO image handling is unverified.
+- **Anki media path:** The default Anki media path is the macOS path (`~/Library/Application Support/Anki2/User 1/collection.media`). Override it with `--anki-media` on Windows or Linux.
+- **Cost estimate:** Token costs depend on question length and model. Cached input tokens are billed at a discount by OpenAI; the run-total log notes this but does not compute the discounted rate.
+
+---
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+To report a bug or request a feature, use the [issue templates](https://github.com/MorrisGlr/clinical-anki-generator/issues/new/choose).
+
+---
+
+## Citation
+
+If you use HEART in your research or share it with others, a citation is appreciated:
+
+```
+Aguilar, M. A. (2024). HEART: HTML-to-Anki Enhanced Human Explanation & Reasoning Tool.
+GitHub. https://github.com/MorrisGlr/clinical-anki-generator
+```
+
+---
+
+## Contact
+
 Morris A. Aguilar, Ph.D.<br>
-<a href= https://www.linkedin.com/in/morris-a-aguilar/ >LinkedIn</a><br>
+<a href="https://www.linkedin.com/in/morris-a-aguilar/">LinkedIn</a>

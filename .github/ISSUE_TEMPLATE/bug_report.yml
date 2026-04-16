@@ -1,0 +1,82 @@
+name: Bug Report
+description: Report a parsing failure, CLI error, or incorrect output
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing a bug, check that your HTML file was saved with `cmd+s` / `ctrl+s` directly from the platform page (not downloaded via a browser extension). Also check that your `OPENAI_API_KEY` is set correctly.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which question bank does the bug affect?
+      options:
+        - UWorld
+        - AMBOSS
+        - APGO
+        - NBME
+        - Other / not platform-specific
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "e.g. 3.11.4"
+    validations:
+      required: true
+
+  - type: input
+    id: heart-version
+    attributes:
+      label: HEART version
+      description: Run `pip show heart` to find the installed version
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "e.g. macOS 14.4, Windows 11, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact `heart` command you ran
+      placeholder: |
+        1. Saved HTML from UWorld question page using cmd+s
+        2. Placed file in html_dump/
+        3. Ran: heart --platform uworld --tags
+        4. Saw error: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: A tab-separated import file should be written to gen_anki/
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Paste the full error message or unexpected output. Do not include real question-bank content.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that might be relevant (e.g., platform recently updated its HTML structure)

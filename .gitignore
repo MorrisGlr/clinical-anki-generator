@@ -12,3 +12,15 @@ CLAUDE.md
 SPEC.md
 CHANGELOG.md
 .claude/
+
+# macOS
+.DS_Store
+
+# Python build artifacts
+heart.egg-info/
+__pycache__/
+*.pyc
+
+# Test artifacts
+.coverage
+htmlcov/

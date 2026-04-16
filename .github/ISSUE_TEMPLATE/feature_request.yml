@@ -1,0 +1,53 @@
+name: Feature Request
+description: Suggest a new feature or improvement to HEART
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are welcome. Please check existing issues first to avoid duplicates. Note that some directions (web UI, EHR integration, novel question generation) are explicitly out of scope -- see the README for details.
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Describe the problem you are trying to solve. Who is affected and how often?
+      placeholder: |
+        As an MS3 on internal medicine rotation, I want to... so that I can...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you would like HEART to do differently or support
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or other tools have you tried? Why are they insufficient?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Which part of HEART does this affect?
+      options:
+        - Parsing (extracting content from HTML/TXT)
+        - Enrichment (OpenAI prompts and output)
+        - Output format (Anki import file structure)
+        - CLI flags and options
+        - New platform support
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, screenshots, or examples that help explain the request
