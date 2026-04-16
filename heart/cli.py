@@ -45,6 +45,26 @@ def main(argv=None):
             "Requires a matching Anki note type with a Tags field."
         ),
     )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        default=False,
+        help=(
+            "Run a second lightweight LLM pass to flag cards whose explanations may "
+            "contain claims that contradict standard medical knowledge. Flagged cards "
+            "receive a visible warning banner on the back side."
+        ),
+    )
+    parser.add_argument(
+        "--format",
+        choices=["basic", "cloze", "choices-front"],
+        default="basic",
+        help=(
+            "Output card format. 'basic': standard front/back (default). "
+            "'cloze': LLM-generated cloze-deletion stem (requires Anki Cloze note type). "
+            "'choices-front': answer choices on the front, correct answer + explanation on back."
+        ),
+    )
 
     args = parser.parse_args(argv)
 
@@ -61,6 +81,8 @@ def main(argv=None):
         output_dir=args.output,
         anki_media_path=str(args.anki_media) if args.platform == "uworld" else None,
         tags=args.tags,
+        validate=args.validate,
+        format=args.format,
     )
 
 
