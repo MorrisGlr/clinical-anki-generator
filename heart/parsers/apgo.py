@@ -17,7 +17,12 @@ SYSTEM_PROMPT = (
     " 4. Discuss the distractors in the vignette (and how they could lead a student astray"
     " from the right answer)."
     " 5. Provide related test-taking strategies."
-    " 6. Provide pertinent mnemonics to the clinical correlations."
+    " 6. Provide pertinent mnemonics to the clinical correlations.\n\n"
+    "At the very end of your response, on its own line, write exactly:\n"
+    "TAGS: tag1, tag2, tag3\n"
+    "Provide 2–3 comma-separated lowercase tags: the primary medical subject (e.g. obstetrics),"
+    " the organ system (e.g. reproductive), and optionally a third relevant tag."
+    " Do not write anything after this line."
 )
 
 _QUESTION_DIV_ID = "questionText"

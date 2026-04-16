@@ -71,3 +71,20 @@ def test_format_for_anki_tab_separated():
 def test_format_for_anki_no_trailing_newline():
     result = format_for_anki("Front", "Back")
     assert not result.endswith("\n")
+
+
+def test_format_for_anki_with_tags_adds_third_column():
+    result = format_for_anki("Front", "Back", tags=["cardiology", "heart"])
+    parts = result.split("\t")
+    assert len(parts) == 3
+    assert parts[2] == "cardiology heart"
+
+
+def test_format_for_anki_empty_tags_omits_third_column():
+    result = format_for_anki("Front", "Back", tags=[])
+    assert len(result.split("\t")) == 2
+
+
+def test_format_for_anki_none_tags_omits_third_column():
+    result = format_for_anki("Front", "Back", tags=None)
+    assert len(result.split("\t")) == 2

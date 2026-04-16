@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import sys
 import threading
@@ -44,7 +45,22 @@ def markdown_to_html(raw: str) -> str:
     return "</br>" + text
 
 
-def generate_enrichment(question: str, answer: str, system_prompt: str) -> str:
+def _extract_tags(raw: str) -> tuple[str, list[str]]:
+    """Strip TAGS: footer from raw LLM text and return (content, normalized_tags)."""
+    match = re.search(r"\nTAGS:\s*(.+)$", raw.strip(), re.IGNORECASE)
+    if match:
+        tags = [
+            t.strip().lower().replace(" ", "_")
+            for t in match.group(1).split(",")
+            if t.strip()
+        ]
+        return raw[: match.start()].rstrip(), tags
+    return raw, []
+
+
+def generate_enrichment(
+    question: str, answer: str, system_prompt: str
+) -> tuple[str, list[str]]:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     stop_event = threading.Event()
     status_thread = threading.Thread(target=_status_spinner, args=(stop_event,))
@@ -67,10 +83,11 @@ def generate_enrichment(question: str, answer: str, system_prompt: str) -> str:
         stop_event.set()
         status_thread.join()
     elapsed = time.time() - start_time
-    gen_text = response.choices[0].message.content
+    raw = response.choices[0].message.content
     logger.info("Text generation completed in %.2f seconds.", elapsed)
     print(f"\nText generation completed in {elapsed:.2f} seconds.")
-    return markdown_to_html(gen_text)
+    content, tags = _extract_tags(raw)
+    return markdown_to_html(content), tags
 
 
 def copy_media(image_paths: list[str], anki_media_path: str) -> list[str]:
@@ -88,7 +105,9 @@ def copy_media(image_paths: list[str], anki_media_path: str) -> list[str]:
     return dest_names
 
 
-def format_for_anki(question: str, answer: str) -> str:
+def format_for_anki(question: str, answer: str, tags: list[str] | None = None) -> str:
+    if tags:
+        return f"{question}\t{answer}\t{' '.join(tags)}"
     return f"{question}\t{answer}"
 
 
@@ -98,6 +117,7 @@ def run_pipeline(
     input_path: Path,
     output_dir: Path,
     anki_media_path: str | None = None,
+    tags: bool = False,
 ) -> None:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -125,7 +145,7 @@ def run_pipeline(
                     for name in dest_names:
                         pq.explanation += f'<img src="{name}">'
 
-                gen_text = generate_enrichment(
+                gen_html, card_tags = generate_enrichment(
                     pq.question,
                     pq.correct_answer + pq.answer_list,
                     system_prompt,
@@ -135,9 +155,16 @@ def run_pipeline(
                     + pq.answer_list
                     + pq.explanation
                     + "</br></br>"
-                    + gen_text
+                    + gen_html
                 )
-                output_file.write(format_for_anki(pq.question, back_side) + "\n")
+                output_file.write(
+                    format_for_anki(
+                        pq.question,
+                        back_side,
+                        tags=card_tags if tags else None,
+                    )
+                    + "\n"
+                )
                 print(f"Processed: {file_path}")
                 print(f"Front side: {pq.question[:70]}")
                 print(f"Back side: {back_side[:70]}\n")

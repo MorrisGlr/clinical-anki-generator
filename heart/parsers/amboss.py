@@ -18,7 +18,12 @@ SYSTEM_PROMPT = (
     " match the vignette, explain what clinical findings, history details, diagnostic test"
     " results, and treatment approaches would be expected if this option were correct."
     " Highlight the key differences between these expected findings and those presented in"
-    " the vignette."
+    " the vignette.\n\n"
+    "At the very end of your response, on its own line, write exactly:\n"
+    "TAGS: tag1, tag2, tag3\n"
+    "Provide 2–3 comma-separated lowercase tags: the primary medical subject (e.g. cardiology),"
+    " the organ system (e.g. heart), and optionally a third relevant tag."
+    " Do not write anything after this line."
 )
 
 # All four known CSS class variants for the correct-answer div, tried in order.

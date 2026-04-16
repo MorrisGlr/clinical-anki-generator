@@ -58,7 +58,11 @@ SYSTEM_PROMPT = """# Role
 ### Incorrect Answer Analysis
 - For each incorrect option, explain the clinical findings, history details, diagnostic test results, and treatment approaches (including medications, if applicable) that would be expected if the option were correct.
 - Highlight the key differences between these expected findings and those in the vignette.
-- Address common misconceptions or traps in reasoning that students might encounter."""
+- Address common misconceptions or traps in reasoning that students might encounter.
+
+At the very end of your response, on its own line, write exactly:
+TAGS: tag1, tag2, tag3
+Provide 2–3 comma-separated lowercase tags: the primary medical subject (e.g. cardiology), the organ system (e.g. heart), and optionally a third relevant tag. Do not write anything after this line."""
 
 _QUESTION_PATTERN = r"(\d+)\.\s(.*?)\n([a-f]\..*?)(?=\n\d+\.\s|\nAnswer Key:)"
 _ANSWER_KEY_PATTERN = r"Answer Key:\n([\s\S]+)"

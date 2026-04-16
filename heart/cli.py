@@ -36,6 +36,15 @@ def main(argv=None):
             "(default: ~/Library/Application Support/Anki2/User 1/collection.media)"
         ),
     )
+    parser.add_argument(
+        "--tags",
+        action="store_true",
+        default=False,
+        help=(
+            "Append LLM-extracted tags as a third tab-separated column in the output. "
+            "Requires a matching Anki note type with a Tags field."
+        ),
+    )
 
     args = parser.parse_args(argv)
 
@@ -51,6 +60,7 @@ def main(argv=None):
         input_path=input_path,
         output_dir=args.output,
         anki_media_path=str(args.anki_media) if args.platform == "uworld" else None,
+        tags=args.tags,
     )
 
 
