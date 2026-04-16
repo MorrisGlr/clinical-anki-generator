@@ -1,7 +1,6 @@
 .env
 html_dump/archive
 html_dump
-src/app_apgo.py
 diagram.pptx
 src/html_repair.py
 import_files/archive

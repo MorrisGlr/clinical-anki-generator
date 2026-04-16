@@ -8,3 +8,6 @@ Requires-Dist: imgkit
 Requires-Dist: markdown
 Requires-Dist: openai
 Requires-Dist: python-dotenv
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"

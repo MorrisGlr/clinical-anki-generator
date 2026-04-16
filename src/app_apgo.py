@@ -8,8 +8,6 @@ import time
 import threading
 import sys
 import markdown
-import shutil
-import imgkit
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -17,17 +15,10 @@ load_dotenv()
 openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
-def convert_html_to_image(html_content, output_path):
-    options = {
-        'format': 'png',
-        'encoding': "UTF-8",
-        'quality': 100,
-    }
-    imgkit.from_string(html_content, output_path, options=options)
 
 # Note: The HTML files should be in the 'html_dump' directory and each html file should have a file name with the question number as the first two characters. Remember to change the directory paths to match your local setup.
 # Function to extract text from a given HTML element and remove HTML tags
-def extract_text_from_html(html_content, question_div_id, correct_answer_div_class, answer_list_div_id, explanation_div_id, html_file_path, anki_media_path: str | None = None):
+def extract_text_from_html(html_content, question_div_id, correct_answer_div_class, answer_list_div_id, explanation_div_id):
     soup = BeautifulSoup(html_content, 'html.parser')
 
     # Extract question
@@ -36,18 +27,11 @@ def extract_text_from_html(html_content, question_div_id, correct_answer_div_cla
     # remove new line characters
     question_str = question_str.replace('\n', ' ')
     # if the first characters are numbers, remove them until the first space
-    try:
-        question_str = question_str.split(' ', 1)[1]
-    except:
-        print('Warning: Could not remove the first characters from the question string. Question string might have a number at the beginning but this is not a problem. Manual editing in Anki might be necessary. Continue processing...')
-        pass
+    question_str = question_str.split(' ', 1)[1]
 
     # Extract correct answer
     correct_answer_div = soup.find('div', class_=correct_answer_div_class)
     correct_answer_str = correct_answer_div.get_text(separator=' ', strip=True) if correct_answer_div else ""
-    # If correct answer string is empty, print warning message.
-    if not correct_answer_str:
-        print('Warning: Correct answer string is empty. Continue processing...')
     # add new line after the correct answer
     correct_answer_str = correct_answer_str.replace('\n', ' ')
     correct_answer_str = correct_answer_str.replace('Omitted ', ' ')
@@ -82,55 +66,10 @@ def extract_text_from_html(html_content, question_div_id, correct_answer_div_cla
 
     explanation_str = '</br></br>' + explanation_str
 
-    # Check for images in the HTML file directory
-    if anki_media_path is not None:
-        # Remove the .html extension from the path
-        html_dir_path = html_file_path[:-5]
-        # add '_files' to the path
-        html_dir_path = html_dir_path + '_files'
-        # Check if the image file exists
-        if os.path.exists(html_dir_path):
-            # Get the list of files in the directory
-            html_dir_files = os.listdir(html_dir_path)
-            # Check if the list is not empty
-            if html_dir_files:
-                # Iterate through the list of files
-                for file in html_dir_files:
-                    # Check if the file is an image file
-                    if file.endswith('.png') or file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.gif'):
-                        # Copy the image file to the Anki media directory
-                        # Get the full path of the image file
-                        image_file_path = os.path.join(html_dir_path, file)
-                        # Get the destination path in the Anki media directory
-                        dest_path = os.path.join(anki_media_path, file)
-                        # check that file name does not already exist in the Anki media directory
-                        if os.path.exists(dest_path):
-                            # add a number to the file name
-                            file = file.split('.')
-                            file = file[0] + '1.' + file[1]
-                            dest_path = os.path.join(anki_media_path, file)
-                        # Copy the image file to the Anki media directory
-                        shutil.copy(image_file_path, dest_path)
-                        # Add the image tag to the end of the explanation string
-                        explanation_str += f'<img src="{file}"></img>'
-
-    # Check if there are tables in the html file
-    # Extract tables
-    # try:
-    #     table = soup.findall('table')
-    #     table_html = str(table) if table else None
-    # except:
-    #     table_html = None
-    # if table_html:
-    #     #file name for the table image based on hour minute and second
-    #     current_time = datetime.now().strftime('%H-%M-%S')
-    #     output_image_path = os.path.join(anki_media_path, f'{current_time}_table.png')
-    #     convert_html_to_image(table_html, output_image_path)
-    #     # Add the image tag for this table to the end of the explanation string
-    #     explanation_str += f'</br><img src="{current_time}_table.png"></img>'
-    
     # combine correct answer and explanation
     back_side = correct_answer_str + answer_list_str + explanation_str
+
+
     return question_str, back_side, correct_answer_str, answer_list_str, explanation_str
 
 # Function to format the extracted text into Anki flashcard format
@@ -143,18 +82,6 @@ def print_status(stop_event):
         print("Generating text...", end="\r")
         sys.stdout.flush()  # Ensure the message is printed immediately
         time.sleep(2)  # Adjust this value to change the frequency
-
-# Function to extract the JSON object from the response string generated by an LLM agent. Proototyping this function for later iterations of this code.
-def extract_json_object_from_prod_agent_response(json_string):
-    '''
-    Extracts the JSON object from the response string generated by a given production team agent ensuring that if superflous characters outside of the JSON generated by an agent, these characters would be discarded. This JSON object contrains the retrieved pieces of information and the assembled section (from the retrieved information) of the medical note a given agent is responsible for. Agent agnostic.
-    '''
-    # Find the first occurrence of '{' and the last occurrence of '}'
-    start_idx = json_string.find('{')
-    end_idx = json_string.rfind('}') + 1
-    # Extract the JSON object substring
-    json_object_str = json_string[start_idx:end_idx]
-    return json_object_str
 
 # Function to use GPT-4o to generate complementary explanations for the questions
 def generate_explanations(question, answer):
@@ -170,11 +97,11 @@ def generate_explanations(question, answer):
 
     try:
       response = client.chat.completions.create(
-          model='o4-mini-2025-04-16',
+          model='gpt-4o',
           messages=[
               {
                   "role": "system",
-                  "content": "You are a biomedical and medical education expert specializing in preparing students for NBME shelf exams. The level of detail should be proportionate to their relevance to the vignette. Below is a practice question along with its answer.\n\n Vignette Analysis: Identify and explain key words or phrases in the vignette that are critical for diagnosing the condition. Describe how these details help narrow down the differential diagnosis, focusing on what to rule in and rule out.\n\nCorrect Answer Explanation: Clearly explain the reasoning behind the correct answer. Discuss the thought process a student should follow, focusing on learning the core concept.\n\nPathophysiology Review: Provide a brief overview of the disease's pathophysiology, including etiology, risk factors, mechanisms, clinical manifestations, and treatment.\n\nIncorrect Answer Review: Instead of simply stating that the incorrect choice doesn't match the vignette, explain what clinical findings, history details, diagnostic test results, and treatment approaches would be expected if this option were correct. Highlight the key differences between these expected findings and those presented in the vignette."
+                  "content": "You are a savvy expert with medical knowledge that trains medical students for NMBE shelf exams. I need help learning concepts from this NBME self-exam-style question. Pasted below is a practice question with its corresponding answer. 1. Provide a vignette analysis (what words should I be paying attention to in the vignette and why. How does it relate to what a student wants to rule in and rule out?) 2a. Explain the correct answer and the train of thought a student needs to consider to learn the content effectively. Also briefly explain the related pathophysiology as well. 2b. If applicable mention and explain relevant anatomy. 3. Explain other diseases that should be considered on the differential diagnosis (3 other diseases but are ultimately incorrect for this vignette) and describe key differentiating indicators (pertinent positives and negatives). 4. Discuss the distractors in the vignette (and how they could lead a student astray from the right answer). 5. Provide related test-taking strategies. 6. Provide pertinent mnemonics to the clinical correlations."
               },
               {
                   "role": "user",
@@ -211,22 +138,16 @@ def generate_explanations(question, answer):
     return gen_text
 
 def main(argv=None):
-    global anki_media_path
-
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description='Convert UWorld HTML files to Anki flashcards.')
+    parser = argparse.ArgumentParser(description='Convert APGO HTML files to Anki flashcards.')
     parser.add_argument('--input', type=Path, default=Path('./html_dump'),
                         help='Directory containing saved HTML files (default: ./html_dump)')
     parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
                         help='Output directory for Anki flashcard files (default: ./gen_anki)')
-    parser.add_argument('--anki-media', type=Path,
-                        default=Path.home() / 'Library/Application Support/Anki2/User 1/collection.media',
-                        help='Anki collection.media directory (default: ~/Library/Application Support/Anki2/User 1/collection.media)')
     args = parser.parse_args(argv)
 
     html_dir = args.input
     output_dir = args.output
-    anki_media_path = str(args.anki_media)
 
     # Create output directory if it doesn't exist
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -262,8 +183,7 @@ def main(argv=None):
                 with open(html_file_path, 'r', encoding='utf-8') as html_file:
                     html_content = html_file.read()
                     question, back_side, correct_answer_str, answer_list_str, explanation_str = extract_text_from_html(
-                        html_content, question_div_id, correct_answer_div_class, answer_list_div_id, explanation_div_id, html_file_path,
-                        anki_media_path=anki_media_path,
+                        html_content, question_div_id, correct_answer_div_class, answer_list_div_id, explanation_div_id
                     )
                     #print("correct_answer_str: ", correct_answer_str)
                     #print("answer_list_str: ", answer_list_str)

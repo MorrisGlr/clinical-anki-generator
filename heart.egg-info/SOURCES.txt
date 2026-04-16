@@ -14,3 +14,7 @@ src/app_amboss.py
 src/app_apgo.py
 src/app_uworld.py
 src/html_repair.py
+tests/test_amboss.py
+tests/test_apgo.py
+tests/test_nbme.py
+tests/test_uworld.py

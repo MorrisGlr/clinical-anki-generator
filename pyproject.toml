@@ -18,5 +18,11 @@ dependencies = [
 [project.scripts]
 heart = "heart.cli:main"
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov>=4.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.setuptools.packages.find]
 include = ["heart*", "src*"]

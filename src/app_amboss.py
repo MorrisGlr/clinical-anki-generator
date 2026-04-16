@@ -14,6 +14,11 @@ load_dotenv()
 openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
+# AMBOSS correct-answer div selector variants (preserved for resilience against CSS renames)
+correct_answer_div_class_alt = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
+correct_answer_div_class_alt_2 = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
+correct_answer_div_class_alt_3 = '-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer'
+
 
 # Note: The HTML files should be in the 'html_dump' directory and each html file should have a file name with the question number as the first two characters. Remember to change the directory paths to match your local setup.
 # Function to extract text from a given HTML element and remove HTML tags
@@ -156,10 +161,6 @@ def main(argv=None):
     # Classes to identify the HTML divs
     #question_div_class = 'questionListContainer--hbbIy containerMuted--arxU8'
     correct_answer_div_class = 'container--CKAXW correctAnswer--xNrke'
-    correct_answer_div_class_alt = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
-    correct_answer_div_class_alt_2 = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
-    correct_answer_div_class_alt_3 = '-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer'
-
     explanation_div_class = '-f8b48b6542a07-explanationContainer'
 
     # print number of html files in the directory

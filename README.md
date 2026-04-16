@@ -1,4 +1,9 @@
 # HEART – HTML‐to‐Anki Enhanced Human Explanation & Reasoning Tool
+
+[![Tests](https://github.com/MorrisGlr/HEART/actions/workflows/tests.yml/badge.svg)](https://github.com/MorrisGlr/HEART/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/MorrisGlr/HEART/branch/main/graph/badge.svg)](https://codecov.io/gh/MorrisGlr/HEART)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 Medical students must maximize their time engaging with [active recall](https://pmc.ncbi.nlm.nih.gov/articles/PMC4031794/) of large volumes of clinical information during their third-year clerkships and for the clerkships' [shelf exams](https://www.lecturio.com/blog/what-are-shelf-exams-and-how-do-i-study-for-them/#elementor-toc__heading-anchor-0). Nonetheless, many students (I among them) with their full clinical schedules struggle to allocate time to assemble highly informative [Anki](https://apps.ankiweb.net/) flashcard decks (a popular digital flashcard app among medical students), edit pre-made decks to suit their learning needs, followed by active studying in the evening. Frustrated by my own late-night copy-paste marathons at the beginning of 2024, I built a Python CLI (HEART) that leverages the OpenAI API to transform full UWorld vignettes into AI-enhanced Anki cards—complete with clinical reasoning breakdowns, distractor insights, and study-optimized prompts—with a single command.
 
 ## Value and Advantages
