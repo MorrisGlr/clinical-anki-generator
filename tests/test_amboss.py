@@ -1,63 +1,62 @@
-"""Tests for the AMBOSS HTML parser (src/app_amboss.py).
-
-All tests use a synthetic HTML fixture — no API calls are made.
-"""
+"""Tests for the AMBOSS HTML parser (heart/parsers/amboss.py)."""
 from pathlib import Path
 
-from src.app_amboss import extract_text_from_html, format_for_anki
+from heart.core import format_for_anki
+from heart.parsers.amboss import parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "amboss_sample.html"
 HTML_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
 
-QUESTION_ID = "FLaJnh0OIM_1"
-CORRECT_ANSWER_DIV_CLASS = "container--CKAXW correctAnswer--xNrke"
-EXPLANATION_DIV_CLASS = "-f8b48b6542a07-explanationContainer"
-
 
 def _parse():
-    return extract_text_from_html(
-        HTML_CONTENT, QUESTION_ID, CORRECT_ANSWER_DIV_CLASS, EXPLANATION_DIV_CLASS
-    )
+    results = parse(HTML_CONTENT, str(FIXTURE_PATH))
+    assert len(results) == 1
+    return results[0]
+
+
+def test_returns_one_parsed_question():
+    results = parse(HTML_CONTENT, str(FIXTURE_PATH))
+    assert len(results) == 1
 
 
 def test_question_is_nonempty():
-    question, *_ = _parse()
-    assert question
+    pq = _parse()
+    assert pq.question
 
 
 def test_question_leading_number_stripped():
-    question, *_ = _parse()
-    assert not question[0].isdigit(), f"Question starts with digit: {question[:20]!r}"
+    pq = _parse()
+    assert not pq.question[0].isdigit(), f"Question starts with digit: {pq.question[:20]!r}"
 
 
 def test_correct_answer_contains_expected_text():
-    _, _, correct_answer_str, _ = _parse()
-    assert "Systemic lupus erythematosus" in correct_answer_str
+    pq = _parse()
+    assert "Systemic lupus erythematosus" in pq.correct_answer
 
 
 def test_correct_answer_prefixed():
-    _, _, correct_answer_str, _ = _parse()
-    assert correct_answer_str.startswith("Correct Answer:")
+    pq = _parse()
+    assert pq.correct_answer.startswith("Correct Answer:")
 
 
 def test_correct_answer_has_html_linebreak():
-    _, _, correct_answer_str, _ = _parse()
-    assert "</br>" in correct_answer_str
+    pq = _parse()
+    assert "</br>" in pq.correct_answer
 
 
 def test_explanation_is_nonempty():
-    _, _, _, explanation_str = _parse()
-    assert explanation_str
+    pq = _parse()
+    assert pq.explanation
 
 
 def test_explanation_prefixed_with_linebreak():
-    _, _, _, explanation_str = _parse()
-    assert explanation_str.startswith("</br>")
+    pq = _parse()
+    assert pq.explanation.startswith("</br>")
 
 
-def test_back_side_is_concatenation_of_components():
-    _, back_side, correct_answer_str, explanation_str = _parse()
-    assert back_side == correct_answer_str + explanation_str
+def test_answer_list_is_empty_string():
+    pq = _parse()
+    assert pq.answer_list == ""
 
 
 def test_format_for_anki_tab_separated():

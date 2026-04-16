@@ -1,62 +1,78 @@
-"""Tests for the NBME text-file parser (src/app_NBME_form_textfile.py).
-
-All tests use a synthetic .txt fixture — no API calls are made.
-"""
+"""Tests for the NBME text-file parser (heart/parsers/nbme.py)."""
 from pathlib import Path
 
-from src.app_NBME_form_textfile import extract_questions_and_answers, format_for_anki
+from heart.core import format_for_anki
+from heart.parsers.nbme import parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nbme_sample.txt"
+TEXT_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
 
 
-def test_returns_nonempty_dict():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    assert isinstance(result, dict)
-    assert len(result) > 0
+def test_returns_nonempty_list():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    assert isinstance(results, list)
+    assert len(results) > 0
 
 
 def test_extracts_correct_number_of_questions():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    assert len(result) == 2
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    assert len(results) == 2
 
 
-def test_question_keys_start_with_number():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    keys = list(result.keys())
-    assert keys[0].startswith("1.")
-    assert keys[1].startswith("2.")
+def test_question_is_nonempty():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert pq.question, f"Question is empty: {pq!r}"
 
 
-def test_each_value_has_options_and_correct_answer():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    for question_key, content in result.items():
-        assert len(content) == 2, f"Expected [options, answer] for {question_key!r}"
-        options, correct_answer = content
-        assert options, f"Options are empty for {question_key!r}"
-        assert correct_answer, f"Correct answer is empty for {question_key!r}"
+def test_question_leading_number_stripped():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert not pq.question[0].isdigit(), (
+            f"Question starts with digit: {pq.question[:20]!r}"
+        )
 
 
 def test_correct_answer_format():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    for question_key, content in result.items():
-        _, correct_answer = content
-        assert correct_answer.startswith(
-            "Correct answer:"
-        ), f"Unexpected format for {question_key!r}: {correct_answer!r}"
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert pq.correct_answer.startswith("Correct answer:"), (
+            f"Unexpected format: {pq.correct_answer!r}"
+        )
+
+
+def test_correct_answer_has_html_linebreak():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert "</br>" in pq.correct_answer
 
 
 def test_first_question_correct_answer_is_a():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    keys = list(result.keys())
-    _, correct_answer = result[keys[0]]
-    assert "A" in correct_answer
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    assert "A" in results[0].correct_answer
 
 
 def test_second_question_correct_answer_is_c():
-    result = extract_questions_and_answers(str(FIXTURE_PATH))
-    keys = list(result.keys())
-    _, correct_answer = result[keys[1]]
-    assert "C" in correct_answer
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    assert "C" in results[1].correct_answer
+
+
+def test_answer_list_is_nonempty():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert pq.answer_list, f"Answer list is empty: {pq!r}"
+
+
+def test_explanation_is_empty_string():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert pq.explanation == ""
+
+
+def test_image_paths_is_empty_list():
+    results = parse(TEXT_CONTENT, str(FIXTURE_PATH))
+    for pq in results:
+        assert pq.image_paths == []
 
 
 def test_format_for_anki_tab_separated():
