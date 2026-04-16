@@ -1,10 +1,11 @@
+import argparse
 import os
+from pathlib import Path
 from bs4 import BeautifulSoup
 from datetime import datetime
 from openai import OpenAI
 import time
 import threading
-import os
 import sys
 import markdown
 import shutil
@@ -208,14 +209,20 @@ def generate_explanations(question, answer):
     print(f"\nText generation completed in {elapsed_time:.2f} seconds.")
     return gen_text
 
-# Directory paths
-wk_dir ='/Users/morris/github_projects/question_bank_anki_export'
-html_dir = wk_dir+'/html_dump'
-output_dir = wk_dir+'/import_files'
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='Convert UWorld HTML files to Anki flashcards.')
+parser.add_argument('--input', type=Path, default=Path('./html_dump'),
+                    help='Directory containing saved HTML files (default: ./html_dump)')
+parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
+                    help='Output directory for Anki flashcard files (default: ./gen_anki)')
+args = parser.parse_args()
+
+html_dir = args.input
+output_dir = args.output
 anki_media_path = '/Users/morris/Library/Application Support/Anki2/User 1/collection.media'
 
 # Create output directory if it doesn't exist
-os.makedirs(output_dir, exist_ok=True)
+output_dir.mkdir(parents=True, exist_ok=True)
 
 # Get current date, hour, minute for the output file name
 current_date = datetime.now().strftime('%Y-%m-%d_%H-%M')

@@ -8,3 +8,8 @@ import_files/archive
 docs/project_plans_amboss.txt
 docs/project_plans_uworld.txt
 ~$diagram.pptx
+gen_anki/archive
+CLAUDE.md
+SPEC.md
+CHANGELOG.md
+.claude/

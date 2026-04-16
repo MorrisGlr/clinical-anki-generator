@@ -1,16 +1,17 @@
+import argparse
 import os
+from pathlib import Path
+import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 from openai import OpenAI
 import time
 import threading
-import os
 import sys
 import markdown
 import shutil
 import imgkit
 from dotenv import load_dotenv
-import re
 load_dotenv()
 
 # Get the API key
@@ -146,10 +147,16 @@ def generate_explanations(question, answer):
         print(f"Error extracting usage data: {e}")
     return gen_text
 
-# Directory paths
-wk_dir ='/Users/morris/github_projects/HEART-HTML-to-Anki'
-file_path = wk_dir+'/html_dump/nmbe_s2ck_15.txt'
-output_dir = wk_dir+'/gen_anki'
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='Convert NBME practice form text file to Anki flashcards.')
+parser.add_argument('--input', type=Path, required=True,
+                    help='Path to the NBME practice form .txt file')
+parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
+                    help='Output directory for Anki flashcard files (default: ./gen_anki)')
+args = parser.parse_args()
+
+file_path = args.input
+output_dir = args.output
 
 prompt_markdown = """# Role
 - You are a helpful biomedical/bioclinical and medical education expert specializing in preparing students for NBME shelf exams and Step 2CK. 
@@ -211,7 +218,7 @@ prompt_markdown = """# Role
 
 
 # Create output directory if it doesn't exist
-os.makedirs(output_dir, exist_ok=True)
+output_dir.mkdir(parents=True, exist_ok=True)
 
 # Get current date, hour, minute for the output file name
 current_date = datetime.now().strftime('%Y-%m-%d_%H-%M')
