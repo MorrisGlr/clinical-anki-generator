@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import shutil
 import sys
 import threading
@@ -12,12 +11,19 @@ from pathlib import Path
 import markdown as _markdown
 from dotenv import load_dotenv
 from openai import OpenAI
+from pydantic import BaseModel
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 _MODEL = "gpt-5.4"
+
+
+class EnrichmentResult(BaseModel):
+    enrichment_markdown: str
+    tags: list[str]
+    confidence: float
 
 
 @dataclass
@@ -45,29 +51,16 @@ def markdown_to_html(raw: str) -> str:
     return "</br>" + text
 
 
-def _extract_tags(raw: str) -> tuple[str, list[str]]:
-    """Strip TAGS: footer from raw LLM text and return (content, normalized_tags)."""
-    match = re.search(r"\nTAGS:\s*(.+)$", raw.strip(), re.IGNORECASE)
-    if match:
-        tags = [
-            t.strip().lower().replace(" ", "_")
-            for t in match.group(1).split(",")
-            if t.strip()
-        ]
-        return raw[: match.start()].rstrip(), tags
-    return raw, []
-
-
 def generate_enrichment(
     question: str, answer: str, system_prompt: str
-) -> tuple[str, list[str]]:
+) -> EnrichmentResult:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     stop_event = threading.Event()
     status_thread = threading.Thread(target=_status_spinner, args=(stop_event,))
     status_thread.start()
     start_time = time.time()
     try:
-        response = client.chat.completions.create(
+        response = client.beta.chat.completions.parse(
             model=_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -75,19 +68,15 @@ def generate_enrichment(
             ],
             temperature=0.75,
             max_tokens=4096,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
+            response_format=EnrichmentResult,
         )
     finally:
         stop_event.set()
         status_thread.join()
     elapsed = time.time() - start_time
-    raw = response.choices[0].message.content
     logger.info("Text generation completed in %.2f seconds.", elapsed)
     print(f"\nText generation completed in {elapsed:.2f} seconds.")
-    content, tags = _extract_tags(raw)
-    return markdown_to_html(content), tags
+    return response.choices[0].message.parsed
 
 
 def copy_media(image_paths: list[str], anki_media_path: str) -> list[str]:
@@ -145,10 +134,16 @@ def run_pipeline(
                     for name in dest_names:
                         pq.explanation += f'<img src="{name}">'
 
-                gen_html, card_tags = generate_enrichment(
+                result = generate_enrichment(
                     pq.question,
                     pq.correct_answer + pq.answer_list,
                     system_prompt,
+                )
+                gen_html = markdown_to_html(result.enrichment_markdown)
+                logger.info(
+                    "Enrichment confidence: %.2f | tags: %s",
+                    result.confidence,
+                    result.tags,
                 )
                 back_side = (
                     pq.correct_answer
@@ -161,7 +156,7 @@ def run_pipeline(
                     format_for_anki(
                         pq.question,
                         back_side,
-                        tags=card_tags if tags else None,
+                        tags=result.tags if tags else None,
                     )
                     + "\n"
                 )

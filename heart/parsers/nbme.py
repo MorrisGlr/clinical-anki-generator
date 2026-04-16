@@ -60,9 +60,11 @@ SYSTEM_PROMPT = """# Role
 - Highlight the key differences between these expected findings and those in the vignette.
 - Address common misconceptions or traps in reasoning that students might encounter.
 
-At the very end of your response, on its own line, write exactly:
-TAGS: tag1, tag2, tag3
-Provide 2–3 comma-separated lowercase tags: the primary medical subject (e.g. cardiology), the organ system (e.g. heart), and optionally a third relevant tag. Do not write anything after this line."""
+Your response must be a JSON object with these fields:
+
+- enrichment_markdown (string): the full back-of-card explanation in Markdown, covering all sections above.
+- tags (array of exactly 6 strings): a mix of USMLE controlled-vocabulary organ-system terms (e.g. cardiovascular, respiratory, gastrointestinal, renal, endocrine, hematology, infectious_disease, neurology, musculoskeletal, dermatology, psychiatry, obstetrics_gynecology, pediatrics, surgery, pharmacology) and free-text subject or mechanism terms specific to this question (e.g. beta_blocker, heart_failure, sodium_balance). Normalize all tags to lowercase with underscores. Provide exactly 6.
+- confidence (float 0.0–1.0): your self-reported confidence in the accuracy and completeness of enrichment_markdown. 1.0 = fully confident, 0.0 = highly uncertain."""
 
 _QUESTION_PATTERN = r"(\d+)\.\s(.*?)\n([a-f]\..*?)(?=\n\d+\.\s|\nAnswer Key:)"
 _ANSWER_KEY_PATTERN = r"Answer Key:\n([\s\S]+)"

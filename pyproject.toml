@@ -12,6 +12,7 @@ dependencies = [
     "imgkit",
     "markdown",
     "openai",
+    "pydantic",
     "python-dotenv",
 ]
 

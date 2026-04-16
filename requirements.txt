@@ -2,4 +2,5 @@ beautifulsoup4
 imgkit
 markdown
 openai
+pydantic
 python-dotenv
