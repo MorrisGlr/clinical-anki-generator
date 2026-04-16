@@ -133,64 +133,69 @@ def generate_explanations(question, answer):
     print(f"\nText generation completed in {elapsed_time:.2f} seconds.")
     return gen_text
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(description='Convert AMBOSS HTML files to Anki flashcards.')
-parser.add_argument('--input', type=Path, default=Path('./html_dump'),
-                    help='Directory containing saved HTML files (default: ./html_dump)')
-parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
-                    help='Output directory for Anki flashcard files (default: ./gen_anki)')
-args = parser.parse_args()
+def main(argv=None):
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Convert AMBOSS HTML files to Anki flashcards.')
+    parser.add_argument('--input', type=Path, default=Path('./html_dump'),
+                        help='Directory containing saved HTML files (default: ./html_dump)')
+    parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
+                        help='Output directory for Anki flashcard files (default: ./gen_anki)')
+    args = parser.parse_args(argv)
 
-html_dir = args.input
-output_dir = args.output
+    html_dir = args.input
+    output_dir = args.output
 
-# Create output directory if it doesn't exist
-output_dir.mkdir(parents=True, exist_ok=True)
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-# Get current date, hour, minute for the output file name
-current_date = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    # Get current date, hour, minute for the output file name
+    current_date = datetime.now().strftime('%Y-%m-%d_%H-%M')
 
-output_file_path = os.path.join(output_dir, f'{current_date}.txt')
+    output_file_path = os.path.join(output_dir, f'{current_date}.txt')
 
-# Classes to identify the HTML divs
-#question_div_class = 'questionListContainer--hbbIy containerMuted--arxU8'
-correct_answer_div_class = 'container--CKAXW correctAnswer--xNrke'
-correct_answer_div_class_alt = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
-correct_answer_div_class_alt_2 = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
-correct_answer_div_class_alt_3 = '-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer'
+    # Classes to identify the HTML divs
+    #question_div_class = 'questionListContainer--hbbIy containerMuted--arxU8'
+    correct_answer_div_class = 'container--CKAXW correctAnswer--xNrke'
+    correct_answer_div_class_alt = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
+    correct_answer_div_class_alt_2 = 'container--CKAXW pointer--eMKos correctAnswer--xNrke'
+    correct_answer_div_class_alt_3 = '-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer'
 
-explanation_div_class = '-f8b48b6542a07-explanationContainer'
+    explanation_div_class = '-f8b48b6542a07-explanationContainer'
 
-# print number of html files in the directory
-html_files = [f for f in os.listdir(html_dir) if f.endswith('.html')]
-print(f"Number of HTML files in the directory: {len(html_files)}")
+    # print number of html files in the directory
+    html_files = [f for f in os.listdir(html_dir) if f.endswith('.html')]
+    print(f"Number of HTML files in the directory: {len(html_files)}")
 
-# Process each HTML file in the directory
-with open(output_file_path, 'w', encoding='utf-8') as output_file:
-    for filename in os.listdir(html_dir):
-        if filename.endswith('.html'):
-            html_file_path = os.path.join(html_dir, filename)
-            # check if the first character in the file name is a number followed by a character, also check if the first two characters are numbers followed by a character, also check if the first three characters are numbers followed by a character. Then use the first one, two, or three characters as the question id suffix.
-            if filename[0].isdigit() and filename[1].isalpha():
-                question_id_suffix = filename[0]
-            elif filename[0].isdigit() and filename[1].isdigit() and filename[2].isalpha():
-                question_id_suffix = filename[:2]
-            elif filename[0].isdigit() and filename[1].isdigit() and filename[2].isdigit() and filename[3].isalpha():
-                question_id_suffix = filename[:3]
-            with open(html_file_path, 'r', encoding='utf-8') as html_file:
-                html_content = html_file.read()
-                question_id = f'FLaJnh0OIM_{question_id_suffix}'
-                question, back_side, correct_answer_str, explanation_str = extract_text_from_html(
-                    html_content, question_id, correct_answer_div_class, explanation_div_class
-                )
-                print(f"File {html_files.index(filename)+1} of {len(html_files)}")
-                gen_text = generate_explanations(question, correct_answer_str)
-                back_side = back_side + '</br></br>' + gen_text
-                anki_format_text = format_for_anki(question, back_side)
-                output_file.write(anki_format_text + '\n')
-                # Debugging output to verify correct processing
-                print(f"Processed file: {filename}")
-                print(f"Question: {question[:80]}")
-                print(f"Back side: {back_side[:80]}"+"\n")
+    # Process each HTML file in the directory
+    with open(output_file_path, 'w', encoding='utf-8') as output_file:
+        for filename in os.listdir(html_dir):
+            if filename.endswith('.html'):
+                html_file_path = os.path.join(html_dir, filename)
+                # check if the first character in the file name is a number followed by a character, also check if the first two characters are numbers followed by a character, also check if the first three characters are numbers followed by a character. Then use the first one, two, or three characters as the question id suffix.
+                if filename[0].isdigit() and filename[1].isalpha():
+                    question_id_suffix = filename[0]
+                elif filename[0].isdigit() and filename[1].isdigit() and filename[2].isalpha():
+                    question_id_suffix = filename[:2]
+                elif filename[0].isdigit() and filename[1].isdigit() and filename[2].isdigit() and filename[3].isalpha():
+                    question_id_suffix = filename[:3]
+                with open(html_file_path, 'r', encoding='utf-8') as html_file:
+                    html_content = html_file.read()
+                    question_id = f'FLaJnh0OIM_{question_id_suffix}'
+                    question, back_side, correct_answer_str, explanation_str = extract_text_from_html(
+                        html_content, question_id, correct_answer_div_class, explanation_div_class
+                    )
+                    print(f"File {html_files.index(filename)+1} of {len(html_files)}")
+                    gen_text = generate_explanations(question, correct_answer_str)
+                    back_side = back_side + '</br></br>' + gen_text
+                    anki_format_text = format_for_anki(question, back_side)
+                    output_file.write(anki_format_text + '\n')
+                    # Debugging output to verify correct processing
+                    print(f"Processed file: {filename}")
+                    print(f"Question: {question[:80]}")
+                    print(f"Back side: {back_side[:80]}"+"\n")
 
-print(f"Done. Anki flashcards have been saved to {output_file_path}")
+    print(f"Done. Anki flashcards have been saved to {output_file_path}")
+
+
+if __name__ == '__main__':
+    main()

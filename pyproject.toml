@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heart"
+version = "0.1.0"
+description = "HTML-to-Anki Enhanced Human Explanation & Reasoning Tool"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4",
+    "imgkit",
+    "markdown",
+    "openai",
+    "python-dotenv",
+]
+
+[project.scripts]
+heart = "heart.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["heart*", "src*"]

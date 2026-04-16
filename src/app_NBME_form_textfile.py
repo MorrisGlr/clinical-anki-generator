@@ -147,18 +147,21 @@ def generate_explanations(question, answer):
         print(f"Error extracting usage data: {e}")
     return gen_text
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(description='Convert NBME practice form text file to Anki flashcards.')
-parser.add_argument('--input', type=Path, required=True,
-                    help='Path to the NBME practice form .txt file')
-parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
-                    help='Output directory for Anki flashcard files (default: ./gen_anki)')
-args = parser.parse_args()
+def main(argv=None):
+    global prompt_markdown
 
-file_path = args.input
-output_dir = args.output
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Convert NBME practice form text file to Anki flashcards.')
+    parser.add_argument('--input', type=Path, required=True,
+                        help='Path to the NBME practice form .txt file')
+    parser.add_argument('--output', type=Path, default=Path('./gen_anki'),
+                        help='Output directory for Anki flashcard files (default: ./gen_anki)')
+    args = parser.parse_args(argv)
 
-prompt_markdown = """# Role
+    file_path = args.input
+    output_dir = args.output
+
+    prompt_markdown = """# Role
 - You are a helpful biomedical/bioclinical and medical education expert specializing in preparing students for NBME shelf exams and Step 2CK. 
 - Teach students like an expert tutor and clinical attending physician that is supportive and encouraging.
 
@@ -216,34 +219,37 @@ prompt_markdown = """# Role
 - Highlight the key differences between these expected findings and those in the vignette.
 - Address common misconceptions or traps in reasoning that students might encounter."""
 
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-# Create output directory if it doesn't exist
-output_dir.mkdir(parents=True, exist_ok=True)
+    # Get current date, hour, minute for the output file name
+    current_date = datetime.now().strftime('%Y-%m-%d_%H-%M')
 
-# Get current date, hour, minute for the output file name
-current_date = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    output_file_path = os.path.join(output_dir, f'{current_date}.txt')
 
-output_file_path = os.path.join(output_dir, f'{current_date}.txt')
+    # Iterate through
+    questions_dict = extract_questions_and_answers(file_path)
+    #for question, content in questions_dict.items():
+    #    print(f"Question: {question[:10]}\nCorrect Answer:\n{content[1]}\n")
 
-# Iterate through 
-questions_dict = extract_questions_and_answers(file_path)
-#for question, content in questions_dict.items():
-#    print(f"Question: {question[:10]}\nCorrect Answer:\n{content[1]}\n")
+    # Write the questions and answers to the output file in Anki format
+    with open(output_file_path, 'w', encoding='utf-8') as output_file:
+        for question, content in questions_dict.items():
+            correct_answer_str = content[1]
+            answer_list_str = content[0]
+            back_side = correct_answer_str+ '</br></br>' + answer_list_str
+            #print(f"Question: {question}\nOptions:\n{content[0]}\n{content[1]}\n")
+            gen_text = generate_explanations(question, correct_answer_str+ '</br></br>' + answer_list_str)
+            back_side = back_side + '</br></br>' + gen_text
+            anki_format_text = format_for_anki(question, back_side)
+            output_file.write(anki_format_text + '\n')
+            # Debugging output to verify correct processing
+            print(f"Processed NMBE form question.")
+            print(f"Front side of card preview: {question[:70]}")
+            print(f"Back side of card preview: {back_side[:70]}"+"\n")
 
-# Write the questions and answers to the output file in Anki format
-with open(output_file_path, 'w', encoding='utf-8') as output_file:
-    for question, content in questions_dict.items():
-        correct_answer_str = content[1]
-        answer_list_str = content[0]
-        back_side = correct_answer_str+ '</br></br>' + answer_list_str
-        #print(f"Question: {question}\nOptions:\n{content[0]}\n{content[1]}\n")
-        gen_text = generate_explanations(question, correct_answer_str+ '</br></br>' + answer_list_str)
-        back_side = back_side + '</br></br>' + gen_text
-        anki_format_text = format_for_anki(question, back_side)
-        output_file.write(anki_format_text + '\n')
-        # Debugging output to verify correct processing
-        print(f"Processed NMBE form question.")
-        print(f"Front side of card preview: {question[:70]}")
-        print(f"Back side of card preview: {back_side[:70]}"+"\n")
+    print(f"Done. Anki flashcards have been saved to {output_file_path}")
 
-print(f"Done. Anki flashcards have been saved to {output_file_path}")
+
+if __name__ == '__main__':
+    main()
