@@ -134,13 +134,15 @@ def main(argv=None):
         default=Path("./gen_anki"),
         help="Output directory for Anki flashcard files (default: ./gen_anki)",
     )
+    from heart.core import _default_anki_media_path
+
     parser.add_argument(
         "--anki-media",
         type=Path,
-        default=Path.home() / "Library/Application Support/Anki2/User 1/collection.media",
+        default=_default_anki_media_path(),
         help=(
             "Anki collection.media directory, UWorld only "
-            "(default: ~/Library/Application Support/Anki2/User 1/collection.media)"
+            "(default: platform-specific Anki2/User 1/collection.media)"
         ),
     )
     parser.add_argument(

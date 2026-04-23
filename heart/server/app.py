@@ -20,7 +20,7 @@ from flask import (
     url_for,
 )
 
-from heart.core import copy_media  # noqa: E402
+from heart.core import _default_anki_media_path, copy_media  # noqa: E402
 
 load_dotenv()
 
@@ -210,10 +210,7 @@ def create_app(output_dir: Path | None = None) -> Flask:
 
         anki_media_path = run.get("anki_media_path")
         if not anki_media_path:
-            # Use the default macOS path if not overridden
-            anki_media_path = str(
-                Path.home() / "Library/Application Support/Anki2/User 1/collection.media"
-            )
+            anki_media_path = str(_default_anki_media_path())
 
         # Collect image paths from all stored cards (cards don't store image_paths,
         # so we re-derive them from the output directory companion folder)

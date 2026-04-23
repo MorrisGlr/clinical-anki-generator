@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup.sh — HEART first-time setup for macOS
+# setup.sh — HEART first-time setup for macOS and Linux (Ubuntu 22.04+)
 # Run from the project root: ./setup.sh
 
 set -euo pipefail
@@ -16,22 +16,31 @@ info() { echo -e "  ${YELLOW}→${RESET}  $*"; }
 hr()   { echo "──────────────────────────────────────────"; }
 
 echo ""
-echo -e "${BOLD}HEART Setup — macOS${RESET}"
+echo -e "${BOLD}HEART Setup${RESET}"
 hr
 
-# ── 1. macOS check ────────────────────────────────────────────────────────────
-if [[ "$(uname -s)" != "Darwin" ]]; then
-    fail "This script is for macOS only."
-    info "For Windows or Linux setup, see SETUP.md."
+# ── 1. Platform check ─────────────────────────────────────────────────────────
+OS="$(uname -s)"
+case "$OS" in
+  Darwin)
+    PLATFORM="macos"
+    ok "macOS detected"
+    ;;
+  Linux)
+    PLATFORM="linux"
+    ok "Linux detected"
+    ;;
+  *)
+    fail "Unsupported platform: $OS"
+    info "For Windows setup, run setup.ps1 in PowerShell. See SETUP.md for instructions."
     exit 1
-fi
-ok "macOS detected"
+    ;;
+esac
 
 # ── 2. Python 3.10+ check ─────────────────────────────────────────────────────
 PYTHON=""
 for cmd in python3.12 python3.11 python3.10 python3; do
     if command -v "$cmd" &>/dev/null; then
-        version=$("$cmd" -c 'import sys; print(sys.version_info[:2])')
         major=$("$cmd" -c 'import sys; print(sys.version_info[0])')
         minor=$("$cmd" -c 'import sys; print(sys.version_info[1])')
         if [[ "$major" -ge 3 && "$minor" -ge 10 ]]; then
@@ -44,17 +53,26 @@ done
 if [[ -z "$PYTHON" ]]; then
     fail "Python 3.10 or later not found."
     echo ""
-    if command -v brew &>/dev/null; then
-        info "Homebrew is installed. Run this command to install Python, then re-run setup.sh:"
-        echo ""
-        echo "      brew install python@3.12"
-        echo ""
+    if [[ "$PLATFORM" == "macos" ]]; then
+        if command -v brew &>/dev/null; then
+            info "Homebrew is installed. Run this command to install Python, then re-run setup.sh:"
+            echo ""
+            echo "      brew install python@3.12"
+            echo ""
+        else
+            info "Install Python from the official site, then re-run setup.sh:"
+            echo ""
+            echo "      https://www.python.org/downloads/"
+            echo ""
+            info "Download the macOS installer package (.pkg) and follow the prompts."
+            echo ""
+        fi
     else
-        info "Install Python from the official site, then re-run setup.sh:"
+        info "Install Python with apt, then re-run setup.sh:"
         echo ""
-        echo "      https://www.python.org/downloads/"
+        echo "      sudo apt update && sudo apt install python3.12 python3.12-venv"
         echo ""
-        info "Download the macOS installer package (.pkg) and follow the prompts."
+        info "Or install from the official site: https://www.python.org/downloads/"
         echo ""
     fi
     exit 1
@@ -112,9 +130,7 @@ if [[ "$WRITE_KEY" == true ]]; then
         fail "No key entered. You can add it later by editing the .env file:"
         echo "      echo 'OPENAI_API_KEY=sk-your-key-here' > .env"
     else
-        # Write or append the key
         if [[ -f ".env" ]]; then
-            # Remove any existing OPENAI_API_KEY line, then append the new one
             grep -v "^OPENAI_API_KEY=" .env > .env.tmp && mv .env.tmp .env
         fi
         echo "OPENAI_API_KEY=$API_KEY" >> .env

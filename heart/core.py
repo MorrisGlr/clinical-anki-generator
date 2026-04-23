@@ -21,6 +21,17 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
+def _default_anki_media_path() -> Path:
+    """Return the platform-appropriate default Anki collection.media directory."""
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Anki2" / "User 1" / "collection.media"
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+        return Path(appdata) / "Anki2" / "User 1" / "collection.media"
+    # Linux and other Unix-like systems
+    return Path.home() / ".local" / "share" / "Anki2" / "User 1" / "collection.media"
+
 _MODEL = "gpt-5.4"
 _VALIDATOR_MODEL = "gpt-5.4-mini"  # lightweight model for contradiction checking
 _CLOZE_MODEL = "gpt-5.4"           # cloze-deletion markup requires medical reasoning
@@ -308,15 +319,14 @@ def generate_cloze(question_stem: str, correct_answer: str) -> tuple[ClozeResult
 def copy_media(image_paths: list[str], anki_media_path: str) -> list[str]:
     """Copy image files to Anki media dir. Returns list of destination filenames."""
     dest_names: list[str] = []
+    media_dir = Path(anki_media_path)
     for src_path in image_paths:
-        filename = os.path.basename(src_path)
-        dest_path = os.path.join(anki_media_path, filename)
-        if os.path.exists(dest_path):
-            base, ext = os.path.splitext(filename)
-            filename = base + "1" + ext
-            dest_path = os.path.join(anki_media_path, filename)
-        shutil.copy(src_path, dest_path)
-        dest_names.append(filename)
+        src = Path(src_path)
+        dest = media_dir / src.name
+        if dest.exists():
+            dest = media_dir / (src.stem + "1" + src.suffix)
+        shutil.copy(src_path, dest)
+        dest_names.append(dest.name)
     return dest_names
 
 

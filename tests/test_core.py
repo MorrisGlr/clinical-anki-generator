@@ -17,6 +17,7 @@ from heart.core import (
     ValidationResult,
     _INPUT_COST_PER_1K_TOKENS,
     _OUTPUT_COST_PER_1K_TOKENS,
+    _default_anki_media_path,
     format_for_anki,
     markdown_to_html,
     try_patterns,
@@ -597,3 +598,33 @@ def test_run_pipeline_raises_on_empty_html_directory(tmp_path):
     with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
         with pytest.raises(HeartUserError, match="No HTML files"):
             run_pipeline(lambda c, f: [], "prompt", empty_dir, tmp_path / "out")
+
+
+# ── _default_anki_media_path ──────────────────────────────────────────────────
+
+
+def test_default_anki_media_path_macos():
+    with patch("heart.core.sys") as mock_sys:
+        mock_sys.platform = "darwin"
+        path = _default_anki_media_path()
+    assert "Library" in str(path)
+    assert "Application Support" in str(path)
+    assert "Anki2" in str(path)
+
+
+def test_default_anki_media_path_windows():
+    with patch("heart.core.sys") as mock_sys, \
+         patch.dict("os.environ", {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"}):
+        mock_sys.platform = "win32"
+        path = _default_anki_media_path()
+    assert "Anki2" in str(path)
+    assert "AppData" in str(path) or "Roaming" in str(path)
+
+
+def test_default_anki_media_path_linux():
+    with patch("heart.core.sys") as mock_sys:
+        mock_sys.platform = "linux"
+        path = _default_anki_media_path()
+    assert ".local" in str(path)
+    assert "share" in str(path)
+    assert "Anki2" in str(path)

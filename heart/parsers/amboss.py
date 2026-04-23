@@ -50,9 +50,9 @@ _EXPLANATION_SELECTORS = [
 
 
 def _question_id_from_path(file_path: str) -> str:
-    import os
+    from pathlib import Path
 
-    filename = os.path.basename(file_path)
+    filename = Path(file_path).name
     for length in (3, 2, 1):
         if len(filename) > length and filename[:length].isdigit():
             return f"FLaJnh0OIM_{filename[:length]}"

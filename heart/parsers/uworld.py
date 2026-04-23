@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
@@ -116,11 +116,11 @@ def parse(content: str, file_path: str) -> list[ParsedQuestion]:
     # Collect image paths from companion *_files/ directory
     image_paths: list[str] = []
     if file_path.endswith(".html"):
-        files_dir = file_path[:-5] + "_files"
-        if os.path.isdir(files_dir):
-            for fname in os.listdir(files_dir):
-                if fname.lower().endswith((".png", ".jpg", ".jpeg", ".gif")):
-                    image_paths.append(os.path.join(files_dir, fname))
+        files_dir = Path(file_path[:-5] + "_files")
+        if files_dir.is_dir():
+            for img in files_dir.iterdir():
+                if img.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif"}:
+                    image_paths.append(str(img))
 
     return [
         ParsedQuestion(

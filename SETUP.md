@@ -1,50 +1,25 @@
-# Setting Up HEART on macOS
+# Setting Up HEART
 
-This guide is written for medical students, residents, and physicians who have not set up a command-line tool before. Follow each step in order.
+This guide is written for medical students, residents, and physicians who have not set up a command-line tool before. Follow the section for your operating system.
 
 **What you will need:**
-- A Mac running macOS 12 (Monterey) or later
 - An internet connection
 - An OpenAI account (free to create; charges apply based on usage — typically $0.01–$0.10 per batch of cards)
 
 **Time:** approximately 10 minutes on first setup.
 
----
-
-## Step 1 — Download HEART
-
-### Option A: Download as a ZIP (recommended for most users)
-
-1. Open your browser and go to:
-   `https://github.com/MorrisGlr/clinical-anki-generator`
-
-2. Click the green **Code** button near the top right of the page.
-   A small dropdown menu appears.
-
-3. Click **Download ZIP**.
-   Your browser will download a file named `clinical-anki-generator-main.zip`.
-
-4. Open your **Downloads** folder in Finder.
-   Double-click the ZIP file to unzip it.
-   A folder named `clinical-anki-generator-main` will appear.
-
-5. Move that folder somewhere easy to find — for example, your Desktop or Documents folder.
-
-### Option B: Clone with git (for users comfortable with the terminal)
-
-```
-git clone https://github.com/MorrisGlr/clinical-anki-generator
-```
+**Jump to your platform:**
+- [macOS](#macos)
+- [Windows](#windows)
+- [Linux (Ubuntu)](#linux-ubuntu)
 
 ---
 
-## Step 2 — Get your OpenAI API key
+## Get your OpenAI API key
 
-HEART uses OpenAI to generate the enriched explanations on your flashcards. You need an API key to authorize this.
+HEART uses OpenAI to generate the enriched explanations on your flashcards. You need an API key to authorize this. This step is the same on all platforms.
 
 > **Note on cost:** API calls are billed by OpenAI based on usage. A typical batch of 40 cards costs roughly $0.40–$4.00 depending on the model. You set your own spending limits in your OpenAI account.
-
-### Create your API key
 
 1. Open your browser and go to: `https://platform.openai.com`
 
@@ -62,7 +37,7 @@ HEART uses OpenAI to generate the enriched explanations on your flashcards. You 
 
 7. A key starting with `sk-` will appear.
    **Copy it now** — it will not be shown again.
-   Paste it into a temporary secure location (a notes app is fine for now).
+   Paste it into a secure temporary location (a notes app is fine for now).
 
 ### Optional: Set a spending limit
 
@@ -72,37 +47,50 @@ To avoid unexpected charges, set a monthly usage limit in your OpenAI account:
 
 ---
 
-## Step 3 — Open Terminal
+## macOS
+
+### Step 1 — Download HEART
+
+**Option A: Download as a ZIP (recommended for most users)**
+
+1. Open your browser and go to:
+   `https://github.com/MorrisGlr/clinical-anki-generator`
+
+2. Click the green **Code** button near the top right of the page.
+   A small dropdown menu appears.
+
+3. Click **Download ZIP**.
+   Your browser will download a file named `clinical-anki-generator-main.zip`.
+
+4. Open your **Downloads** folder in Finder.
+   Double-click the ZIP file to unzip it.
+   A folder named `clinical-anki-generator-main` will appear.
+
+5. Move that folder somewhere easy to find — for example, your Desktop or Documents folder.
+
+**Option B: Clone with git (for users comfortable with the terminal)**
+
+```
+git clone https://github.com/MorrisGlr/clinical-anki-generator
+```
+
+### Step 2 — Open Terminal
 
 Terminal is a built-in macOS app that lets you run commands.
 
 1. Press **Command (⌘) + Space** to open Spotlight Search.
-
 2. Type `Terminal` and press **Enter**.
-
 3. A white (or black) window with a text cursor appears. This is Terminal.
 
----
-
-## Step 4 — Navigate to the HEART folder
-
-In Terminal, you need to tell it where the HEART folder is.
+### Step 3 — Navigate to the HEART folder
 
 1. Type `cd ` (with a space after `cd`) but do not press Enter yet.
-
 2. Open Finder and locate the `clinical-anki-generator-main` folder you downloaded.
-
 3. Drag that folder from Finder into the Terminal window.
-   The folder path will be inserted automatically — for example:
-   `cd /Users/yourname/Desktop/clinical-anki-generator-main`
-
+   The folder path will be inserted automatically.
 4. Press **Enter**.
 
-   The Terminal prompt will now show the HEART folder name, confirming you are in the right place.
-
----
-
-## Step 5 — Run the setup script
+### Step 4 — Run the setup script
 
 In Terminal, type the following command and press **Enter**:
 
@@ -111,63 +99,247 @@ In Terminal, type the following command and press **Enter**:
 ```
 
 The script will:
-
 1. Check that your Mac meets the requirements
 2. Install Python if needed (it will tell you exactly what to run)
-3. Set up a self-contained environment so HEART does not interfere with other software
+3. Set up a self-contained environment
 4. Install HEART and its dependencies
-5. Ask you to paste your OpenAI API key (the `sk-...` value you copied in Step 2)
+5. Ask you to paste your OpenAI API key
 6. Confirm everything is working
 
 Follow any on-screen prompts. The whole process takes 1–3 minutes.
 
-### If Python is not installed
+**If Python is not installed:** the script will tell you and give you the exact command. After installing Python, re-run `./setup.sh`.
 
-The script will tell you if Python needs to be installed and give you the exact command or link to use. After installing Python, re-run `./setup.sh`.
-
----
-
-## Step 6 — Verify the setup
-
-After setup completes, run:
+### Step 5 — Verify the setup
 
 ```
 heart check
 ```
 
-You should see output like this (all green checkmarks):
+You should see all green checkmarks. If any item shows a red ✗, see Troubleshooting below.
+
+### Activate HEART in future sessions
+
+Each time you open a new Terminal window:
 
 ```
-  ✓  Python 3.12.x
-  ✓  OPENAI_API_KEY is set
-  ✓  Input directory ./html_dump exists
-  ✓  Output directory ./gen_anki exists and is writable
+source .venv/bin/activate
 ```
 
-If any item shows a red ✗, see the Troubleshooting section below.
+### macOS Troubleshooting
+
+**`heart: command not found`** — The virtual environment is not activated. Run `source .venv/bin/activate`.
+
+**`OPENAI_API_KEY is not set`** — Run `./setup.sh` again, or open `.env` in any text editor and add: `OPENAI_API_KEY=sk-your-key-here`
+
+**`Python 3.10 or later not found`** — Install from `https://www.python.org/downloads/`. With Homebrew: `brew install python@3.12`
+
+**`Permission denied: ./setup.sh`** — Run `chmod +x setup.sh` once, then try again.
 
 ---
 
-## Step 7 — Place your saved HTML files
+## Windows
+
+### Step 1 — Download HEART
+
+1. Open your browser and go to:
+   `https://github.com/MorrisGlr/clinical-anki-generator`
+
+2. Click the green **Code** button near the top right.
+
+3. Click **Download ZIP**.
+   Your browser will download `clinical-anki-generator-main.zip`.
+
+4. Open your **Downloads** folder in File Explorer.
+   Right-click the ZIP and select **Extract All**.
+
+5. Move the extracted folder somewhere easy to find — for example, your Desktop.
+
+### Step 2 — Open PowerShell
+
+1. Press **Windows + S** and type `PowerShell`.
+2. Click **Windows PowerShell** (not "PowerShell ISE").
+3. A blue window with a text cursor appears.
+
+### Step 3 — Navigate to the HEART folder
+
+1. Type `cd ` (with a space) but do not press Enter yet.
+2. Open File Explorer and navigate to the `clinical-anki-generator-main` folder.
+3. Click the address bar at the top of File Explorer to highlight the path.
+4. Copy the path (Ctrl+C) and paste it after `cd ` in PowerShell.
+5. Press **Enter**.
+
+### Step 4 — Allow the setup script to run (one-time)
+
+Windows blocks unsigned PowerShell scripts by default. Run this once to allow local scripts:
+
+```
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Type `Y` and press **Enter** when prompted.
+
+### Step 5 — Run the setup script
+
+```
+.\setup.ps1
+```
+
+The script will:
+1. Check that your Windows installation meets the requirements
+2. Install Python if needed (it will give you the exact command)
+3. Set up a self-contained environment
+4. Install HEART and its dependencies
+5. Ask you to paste your OpenAI API key
+6. Confirm everything is working
+
+Follow any on-screen prompts. The whole process takes 1–3 minutes.
+
+**If Python is not installed:** the script will suggest:
+```
+winget install Python.Python.3.12
+```
+After installing, close and reopen PowerShell, then re-run `.\setup.ps1`.
+
+### Step 6 — Verify the setup
+
+```
+heart check
+```
+
+You should see all `[OK]` lines. If any show `[X]`, see Troubleshooting below.
+
+### Activate HEART in future sessions
+
+Each time you open a new PowerShell window:
+
+```
+.\.venv\Scripts\Activate.ps1
+```
+
+### Windows Troubleshooting
+
+**`heart: The term 'heart' is not recognized`** — The virtual environment is not activated. Run `.\.venv\Scripts\Activate.ps1`.
+
+**`OPENAI_API_KEY is not set`** — Run `.\setup.ps1` again, or open `.env` in Notepad and add: `OPENAI_API_KEY=sk-your-key-here`
+
+**`Python 3.10 or later not found`** — Install from `https://www.python.org/downloads/`. Check **"Add Python to PATH"** during installation. Then close and reopen PowerShell.
+
+**`running scripts is disabled on this system`** — Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` and try again.
+
+**`pip is not recognized`** — Your Python installation may be incomplete. Re-install Python from python.org, ensuring "Add Python to PATH" is checked.
+
+---
+
+## Linux (Ubuntu)
+
+### Step 1 — Download HEART
+
+**Option A: Download as a ZIP**
+
+1. Open your browser and go to:
+   `https://github.com/MorrisGlr/clinical-anki-generator`
+
+2. Click the green **Code** button, then **Download ZIP**.
+
+3. Open your **Downloads** folder in Files.
+   Right-click the ZIP and select **Extract Here**.
+
+4. Move the extracted folder somewhere easy to find — for example, your home directory.
+
+**Option B: Clone with git**
+
+```
+git clone https://github.com/MorrisGlr/clinical-anki-generator
+```
+
+### Step 2 — Open Terminal
+
+Press **Ctrl + Alt + T**, or search for "Terminal" in your application launcher.
+
+### Step 3 — Navigate to the HEART folder
+
+```
+cd ~/clinical-anki-generator-main
+```
+
+Replace `~` with the actual path if you moved the folder elsewhere.
+
+### Step 4 — Run the setup script
+
+```
+./setup.sh
+```
+
+If you see "Permission denied", make the script executable first:
+
+```
+chmod +x setup.sh && ./setup.sh
+```
+
+The script will:
+1. Detect that you are on Linux
+2. Install Python if needed (it will give you the exact `apt` command)
+3. Set up a self-contained virtual environment
+4. Install HEART and its dependencies
+5. Ask you to paste your OpenAI API key
+6. Confirm everything is working
+
+**If Python is not installed:** the script will suggest:
+```
+sudo apt update && sudo apt install python3.12 python3.12-venv
+```
+After installing, re-run `./setup.sh`.
+
+### Step 5 — Verify the setup
+
+```
+heart check
+```
+
+You should see all green checkmarks. If any show a red ✗, see Troubleshooting below.
+
+### Activate HEART in future sessions
+
+Each time you open a new Terminal window:
+
+```
+source .venv/bin/activate
+```
+
+### Linux Troubleshooting
+
+**`heart: command not found`** — The virtual environment is not activated. Run `source .venv/bin/activate`.
+
+**`OPENAI_API_KEY is not set`** — Run `./setup.sh` again, or open `.env` in any text editor and add: `OPENAI_API_KEY=sk-your-key-here`
+
+**`Python 3.10 or later not found`** — Run: `sudo apt update && sudo apt install python3.12 python3.12-venv`
+
+**`Permission denied: ./setup.sh`** — Run `chmod +x setup.sh` once, then try again.
+
+**`No module named venv`** — Install venv separately: `sudo apt install python3.12-venv`
+
+---
+
+## Saving HTML files (all platforms)
 
 Before running HEART, you need to save HTML pages from your question bank:
 
 1. In your browser (Chrome or Firefox), open a completed question in UWorld, AMBOSS, or APGO.
 
-2. Press **Command (⌘) + S** to save the page.
+2. Press **Ctrl+S** (Windows/Linux) or **Command (⌘)+S** (macOS) to save the page.
 
 3. In the save dialog, make sure the format is set to **Web Page, Complete** (not "Web Archive" or "PDF").
 
 4. Save the file into the `html_dump` folder inside your HEART directory.
-   If `html_dump` does not exist yet, create it in Finder.
 
 Repeat for each question you want to convert.
 
 ---
 
-## Step 8 — Generate your flashcards
+## Generate your flashcards (all platforms)
 
-In Terminal (make sure you are still in the HEART folder):
+In your terminal (make sure your virtual environment is activated and you are in the HEART folder):
 
 ```
 heart --platform uworld
@@ -179,70 +351,9 @@ HEART will process each file and write a `.txt` output file to the `gen_anki/` f
 
 ---
 
-## Activating HEART in future sessions
-
-Each time you open a new Terminal window, you need to activate the environment before running `heart`:
-
-```
-source .venv/bin/activate
-```
-
-Then navigate to the HEART folder and run your command as usual.
-
----
-
-## Troubleshooting
-
-### `heart: command not found`
-
-The virtual environment is not activated. Run:
-```
-source .venv/bin/activate
-```
-Then try again.
-
-### `OPENAI_API_KEY is not set`
-
-Your API key was not saved, or the `.env` file is missing. Run `./setup.sh` again — it will prompt you to enter your key.
-
-Alternatively, open the `.env` file in any text editor and add:
-```
-OPENAI_API_KEY=sk-your-key-here
-```
-
-### `Python 3.10 or later not found`
-
-Install Python from `https://www.python.org/downloads/` and re-run `./setup.sh`.
-
-If you have Homebrew installed, you can run:
-```
-brew install python@3.12
-```
-
-### `Permission denied: ./setup.sh`
-
-Run this once to make the script executable, then try again:
-```
-chmod +x setup.sh
-```
-
-### The script stops with an error about `pip`
-
-Your Python installation may be missing `pip`. Run:
-```
-python3 -m ensurepip --upgrade
-```
-Then re-run `./setup.sh`.
-
-### Cards are generated but the Anki import fails
-
-Make sure the output `.txt` file from `gen_anki/` is imported using **File → Import** in Anki, with the field separator set to **Tab**. See the README for full import instructions.
-
----
-
 ## Getting help
 
 If you run into an issue not covered here, open a GitHub issue at:
 `https://github.com/MorrisGlr/clinical-anki-generator/issues`
 
-Include the error message you see and the macOS version from **Apple menu → About This Mac**.
+Include the error message you see and your operating system version.
