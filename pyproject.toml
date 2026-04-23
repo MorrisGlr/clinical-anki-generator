@@ -9,6 +9,7 @@ description = "HTML-to-Anki Enhanced Human Explanation & Reasoning Tool"
 requires-python = ">=3.10"
 dependencies = [
     "beautifulsoup4",
+    "flask",
     "imgkit",
     "markdown",
     "openai",

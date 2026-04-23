@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}HEART — Generate Flashcards{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Generate Anki Flashcards</h1>
+  <p class="subtitle">Save HTML pages from your question bank, upload them here, and HEART will turn them into AI-enriched Anki cards.</p>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <form id="run-form" action="/run" method="post" enctype="multipart/form-data">
+
+    <!-- Platform -->
+    <div class="field">
+      <label for="platform">Question bank</label>
+      <select id="platform" name="platform">
+        <option value="uworld">UWorld</option>
+        <option value="amboss">AMBOSS</option>
+        <option value="apgo">APGO</option>
+        <option value="nbme">NBME (text file)</option>
+      </select>
+    </div>
+
+    <!-- File upload -->
+    <div class="field">
+      <label id="file-label" for="files">Upload HTML files</label>
+      <div class="drop-zone" id="drop-zone">
+        <span id="drop-text">Drag &amp; drop files here, or click to browse</span>
+        <input type="file" id="files" name="files" multiple accept=".html" class="file-input">
+      </div>
+      <ul id="file-list" class="file-list"></ul>
+    </div>
+
+    <!-- Options -->
+    <details class="options-panel">
+      <summary>Options</summary>
+      <div class="options-grid">
+        <label class="toggle">
+          <input type="checkbox" name="tags">
+          <span>Add tags (third Anki column)</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" name="validate">
+          <span>Validate cards for accuracy</span>
+        </label>
+        <div class="field inline">
+          <label for="format">Card format</label>
+          <select id="format" name="format">
+            <option value="basic">Basic (stem → explanation)</option>
+            <option value="cloze">Cloze deletion</option>
+            <option value="choices-front">Choices on front</option>
+          </select>
+        </div>
+        <div class="field inline" id="anki-media-field">
+          <label for="anki_media">Anki media folder path <span class="hint">(UWorld only; leave blank for default)</span></label>
+          <input type="text" id="anki_media" name="anki_media" placeholder="~/Library/Application Support/Anki2/User 1/collection.media">
+        </div>
+      </div>
+    </details>
+
+    <button type="submit" class="btn-primary" id="submit-btn">Generate Cards</button>
+  </form>
+</div>
+
+<script>
+  const platformSelect = document.getElementById("platform");
+  const fileInput      = document.getElementById("files");
+  const fileLabel      = document.getElementById("file-label");
+  const dropZone       = document.getElementById("drop-zone");
+  const dropText       = document.getElementById("drop-text");
+  const fileList       = document.getElementById("file-list");
+
+  // Adapt file picker for NBME vs HTML platforms
+  platformSelect.addEventListener("change", function () {
+    if (this.value === "nbme") {
+      fileInput.accept   = ".txt";
+      fileInput.multiple = false;
+      fileLabel.textContent = "Upload .txt file";
+      dropText.textContent  = "Drag & drop your .txt file here, or click to browse";
+    } else {
+      fileInput.accept   = ".html";
+      fileInput.multiple = true;
+      fileLabel.textContent = "Upload HTML files";
+      dropText.textContent  = "Drag & drop files here, or click to browse";
+    }
+    fileList.innerHTML = "";
+  });
+
+  // Show selected file names
+  function updateFileList(files) {
+    fileList.innerHTML = "";
+    Array.from(files).forEach(function (f) {
+      const li = document.createElement("li");
+      li.textContent = f.name;
+      fileList.appendChild(li);
+    });
+  }
+
+  fileInput.addEventListener("change", function () {
+    updateFileList(this.files);
+  });
+
+  // Drag and drop
+  dropZone.addEventListener("click", function () { fileInput.click(); });
+
+  dropZone.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    dropZone.classList.add("drag-over");
+  });
+
+  dropZone.addEventListener("dragleave", function () {
+    dropZone.classList.remove("drag-over");
+  });
+
+  dropZone.addEventListener("drop", function (e) {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    fileInput.files = e.dataTransfer.files;
+    updateFileList(e.dataTransfer.files);
+  });
+
+  // Show loading state on submit
+  document.getElementById("run-form").addEventListener("submit", function () {
+    document.getElementById("submit-btn").textContent = "Starting…";
+    document.getElementById("submit-btn").disabled = true;
+  });
+</script>
+{% endblock %}

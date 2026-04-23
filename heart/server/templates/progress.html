@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}HEART — Generating…{% endblock %}
+{% block content %}
+<div class="card">
+  <h1 id="page-title">Generating flashcards…</h1>
+  <p class="subtitle" id="page-subtitle">This may take a few minutes. Do not close this window.</p>
+
+  <div id="spinner" class="spinner"></div>
+
+  <ul id="card-feed" class="card-feed"></ul>
+
+  <div id="summary" class="summary hidden">
+    <div class="summary-grid">
+      <div class="summary-item">
+        <span class="summary-num" id="sum-total">—</span>
+        <span class="summary-label">Cards generated</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-num" id="sum-skipped">—</span>
+        <span class="summary-label">Skipped</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-num" id="sum-cost">—</span>
+        <span class="summary-label">Estimated cost</span>
+      </div>
+    </div>
+    <a id="download-btn" href="/download/{{ run_id }}" class="btn-primary">Download .txt file</a>
+    <a href="/" class="btn-secondary">Generate more cards</a>
+  </div>
+
+  <div id="error-box" class="alert alert-error hidden"></div>
+</div>
+
+<script>
+  const runId   = {{ run_id | tojson }};
+  const feed    = document.getElementById("card-feed");
+  const summary = document.getElementById("summary");
+  const spinner = document.getElementById("spinner");
+  const errBox  = document.getElementById("error-box");
+
+  const source  = new EventSource("/stream/" + runId);
+
+  source.onmessage = function (e) {
+    let data;
+    try { data = JSON.parse(e.data); } catch (_) { return; }
+
+    if (data.type === "card_start") {
+      const li = document.createElement("li");
+      li.id   = "card-" + data.n;
+      li.className = "feed-item processing";
+      li.textContent = "Card " + data.n + " — processing…";
+      feed.appendChild(li);
+      li.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    if (data.type === "card_done") {
+      const li = document.getElementById("card-" + data.n);
+      if (li) {
+        li.className  = data.flagged ? "feed-item flagged" : "feed-item done";
+        li.textContent = "Card " + data.n
+          + (data.flagged ? " — done (flagged for review)" : " — done")
+          + "  $" + data.cost_usd.toFixed(4);
+      }
+    }
+
+    if (data.type === "card_skip") {
+      const li = document.createElement("li");
+      li.className = "feed-item skipped";
+      li.textContent = "Card " + data.n + " — skipped (" + data.reason + ")";
+      feed.appendChild(li);
+    }
+
+    if (data.type === "done") {
+      source.close();
+      spinner.classList.add("hidden");
+      document.getElementById("page-title").textContent = "Done!";
+      document.getElementById("page-subtitle").textContent = "Your flashcards are ready.";
+      document.getElementById("sum-total").textContent   = data.total;
+      document.getElementById("sum-skipped").textContent = data.skipped;
+      document.getElementById("sum-cost").textContent    = "$" + data.cost_usd.toFixed(4);
+      summary.classList.remove("hidden");
+    }
+
+    if (data.type === "error") {
+      source.close();
+      spinner.classList.add("hidden");
+      document.getElementById("page-title").textContent = "Something went wrong";
+      errBox.textContent = data.message;
+      errBox.classList.remove("hidden");
+    }
+  };
+
+  source.onerror = function () {
+    source.close();
+    spinner.classList.add("hidden");
+    errBox.textContent = "Lost connection to the server. Please refresh and try again.";
+    errBox.classList.remove("hidden");
+  };
+</script>
+{% endblock %}

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -8,7 +9,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import markdown as _markdown
 from bs4 import BeautifulSoup
@@ -295,10 +296,30 @@ def run_pipeline(
     tags: bool = False,
     validate: bool = False,
     format: str = "basic",
-) -> None:
+    progress_callback: Callable[[str], None] | None = None,
+    output_file_path: Path | None = None,
+) -> Path:
+    """Run the full parse → enrich → serialize pipeline.
+
+    Args:
+        progress_callback: Optional callable receiving JSON-encoded progress
+            strings. Events: card_start, card_done, card_skip, done, error.
+        output_file_path: Override the auto-generated output path. When None,
+            a timestamped file is created in output_dir.
+
+    Returns:
+        Path to the written output file.
+    """
+
+    def _emit(event: dict) -> None:
+        if progress_callback:
+            progress_callback(json.dumps(event))
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_file_path = output_dir / f"{datetime.now().strftime('%Y-%m-%d_%H-%M')}.txt"
+    if output_file_path is None:
+        output_file_path = output_dir / f"{datetime.now().strftime('%Y-%m-%d_%H-%M')}.txt"
+    output_file_path = Path(output_file_path)
 
     input_path = Path(input_path)
 
@@ -314,103 +335,117 @@ def run_pipeline(
     total_input = 0
     total_output = 0
     total_cached = 0
-    with open(output_file_path, "w", encoding="utf-8") as output_file:
-        for content, file_path in file_pairs:
-            parsed_questions = parse_fn(content, file_path)
-            for pq in parsed_questions:
-                card_num += 1
-                if not pq.question or not pq.correct_answer:
-                    logger.warning(
-                        "Skipping card %d from %s: question=%s correct_answer=%s",
-                        card_num,
-                        file_path,
-                        bool(pq.question),
-                        bool(pq.correct_answer),
-                    )
-                    skipped += 1
-                    continue
-                print(f"Processing card {card_num}")
-
-                if anki_media_path and pq.image_paths:
-                    dest_names = copy_media(pq.image_paths, anki_media_path)
-                    for name in dest_names:
-                        pq.explanation += f'<img src="{name}">'
-
-                result, usage = generate_enrichment(
-                    pq.question,
-                    pq.correct_answer + pq.answer_list,
-                    system_prompt,
-                )
-                logger.debug(
-                    "Card %d — %d in / %d out / %d cached → $%.4f",
-                    card_num,
-                    usage.input_tokens,
-                    usage.output_tokens,
-                    usage.cached_tokens,
-                    usage.cost_usd,
-                )
-                total_input += usage.input_tokens
-                total_output += usage.output_tokens
-                total_cached += usage.cached_tokens
-                gen_html = markdown_to_html(result.enrichment_markdown)
-                logger.info(
-                    "Enrichment confidence: %.2f | tags: %s",
-                    result.confidence,
-                    result.tags,
-                )
-                banner = ""
-                if validate:
-                    val_result, val_usage = validate_enrichment(result.enrichment_markdown)
-                    total_input += val_usage.input_tokens
-                    total_output += val_usage.output_tokens
-                    total_cached += val_usage.cached_tokens
-                    if val_result.flagged:
+    try:
+        with open(output_file_path, "w", encoding="utf-8") as output_file:
+            for content, file_path in file_pairs:
+                parsed_questions = parse_fn(content, file_path)
+                for pq in parsed_questions:
+                    card_num += 1
+                    if not pq.question or not pq.correct_answer:
                         logger.warning(
-                            "Card %d flagged by validator: %s",
+                            "Skipping card %d from %s: question=%s correct_answer=%s",
                             card_num,
-                            val_result.justification,
+                            file_path,
+                            bool(pq.question),
+                            bool(pq.correct_answer),
                         )
-                        banner = _VALIDATION_BANNER.format(
-                            justification=val_result.justification
-                        )
-                full_back = (
-                    pq.correct_answer
-                    + pq.answer_list
-                    + pq.explanation
-                    + "</br></br>"
-                    + gen_html
-                    + banner
-                )
-                if format == "cloze":
-                    cloze_result, cloze_usage = generate_cloze(pq.question, pq.correct_answer)
-                    total_input += cloze_usage.input_tokens
-                    total_output += cloze_usage.output_tokens
-                    total_cached += cloze_usage.cached_tokens
-                    front = cloze_result.cloze_stem
-                    back = full_back
-                elif format == "choices-front":
-                    front = pq.question + pq.answer_list
-                    back = (
+                        skipped += 1
+                        _emit({"type": "card_skip", "n": card_num, "reason": "empty question or answer"})
+                        continue
+                    print(f"Processing card {card_num}")
+                    _emit({"type": "card_start", "n": card_num})
+
+                    if anki_media_path and pq.image_paths:
+                        dest_names = copy_media(pq.image_paths, anki_media_path)
+                        for name in dest_names:
+                            pq.explanation += f'<img src="{name}">'
+
+                    result, usage = generate_enrichment(
+                        pq.question,
+                        pq.correct_answer + pq.answer_list,
+                        system_prompt,
+                    )
+                    logger.debug(
+                        "Card %d — %d in / %d out / %d cached → $%.4f",
+                        card_num,
+                        usage.input_tokens,
+                        usage.output_tokens,
+                        usage.cached_tokens,
+                        usage.cost_usd,
+                    )
+                    total_input += usage.input_tokens
+                    total_output += usage.output_tokens
+                    total_cached += usage.cached_tokens
+                    gen_html = markdown_to_html(result.enrichment_markdown)
+                    logger.info(
+                        "Enrichment confidence: %.2f | tags: %s",
+                        result.confidence,
+                        result.tags,
+                    )
+                    banner = ""
+                    flagged = False
+                    if validate:
+                        val_result, val_usage = validate_enrichment(result.enrichment_markdown)
+                        total_input += val_usage.input_tokens
+                        total_output += val_usage.output_tokens
+                        total_cached += val_usage.cached_tokens
+                        if val_result.flagged:
+                            flagged = True
+                            logger.warning(
+                                "Card %d flagged by validator: %s",
+                                card_num,
+                                val_result.justification,
+                            )
+                            banner = _VALIDATION_BANNER.format(
+                                justification=val_result.justification
+                            )
+                    full_back = (
                         pq.correct_answer
+                        + pq.answer_list
                         + pq.explanation
                         + "</br></br>"
                         + gen_html
                         + banner
                     )
-                else:
-                    front = pq.question
-                    back = full_back
-                output_file.write(
-                    format_for_anki(
-                        front,
-                        back,
-                        tags=result.tags if tags else None,
+                    if format == "cloze":
+                        cloze_result, cloze_usage = generate_cloze(pq.question, pq.correct_answer)
+                        total_input += cloze_usage.input_tokens
+                        total_output += cloze_usage.output_tokens
+                        total_cached += cloze_usage.cached_tokens
+                        front = cloze_result.cloze_stem
+                        back = full_back
+                    elif format == "choices-front":
+                        front = pq.question + pq.answer_list
+                        back = (
+                            pq.correct_answer
+                            + pq.explanation
+                            + "</br></br>"
+                            + gen_html
+                            + banner
+                        )
+                    else:
+                        front = pq.question
+                        back = full_back
+                    output_file.write(
+                        format_for_anki(
+                            front,
+                            back,
+                            tags=result.tags if tags else None,
+                        )
+                        + "\n"
                     )
-                    + "\n"
-                )
-                print(f"Processed: {file_path}")
-                print(f"Front side: {front[:70]}")
-                print(f"Back side: {back[:70]}\n")
+                    print(f"Processed: {file_path}")
+                    print(f"Front side: {front[:70]}")
+                    print(f"Back side: {back[:70]}\n")
+                    _emit({
+                        "type": "card_done",
+                        "n": card_num,
+                        "cost_usd": round(usage.cost_usd, 4),
+                        "flagged": flagged,
+                    })
+    except Exception as exc:
+        _emit({"type": "error", "message": str(exc)})
+        raise
 
     total_cost = (
         total_input * _INPUT_COST_PER_1K_TOKENS
@@ -427,3 +462,10 @@ def run_pipeline(
     processed = card_num - skipped
     print(f"Done. Processed {processed} cards, skipped {skipped}.")
     print(f"Anki flashcards have been saved to {output_file_path}")
+    _emit({
+        "type": "done",
+        "total": processed,
+        "skipped": skipped,
+        "cost_usd": round(total_cost, 4),
+    })
+    return output_file_path

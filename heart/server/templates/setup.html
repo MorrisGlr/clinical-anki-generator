@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}HEART — API Key Setup{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>OpenAI API Key Setup</h1>
+  <p class="subtitle">HEART uses OpenAI to generate the enriched explanations on your flashcards. You need an API key to get started.</p>
+
+  <div class="info-box">
+    <strong>What is an API key?</strong>
+    <p>It is a password-like code that lets HEART talk to OpenAI on your behalf. You create it once in your OpenAI account, then paste it here. HEART saves it to a local <code>.env</code> file on your computer — it is never sent anywhere else.</p>
+  </div>
+
+  <h2>How to get your API key</h2>
+  <ol class="steps">
+    <li>Open <strong>platform.openai.com</strong> in your browser and sign in (or create a free account).</li>
+    <li>Click your profile icon in the top-right corner, then click <strong>API keys</strong>.</li>
+    <li>Click <strong>Create new secret key</strong>. Give it a name like <em>HEART</em>.</li>
+    <li>Copy the key — it starts with <code>sk-</code>. <strong>This is the only time it will be shown.</strong></li>
+    <li>Paste it into the field below and click Save.</li>
+  </ol>
+
+  <div class="info-box info-box--warning">
+    <strong>Note on cost:</strong> API calls are billed by OpenAI based on usage. A typical batch of 40 cards costs roughly $0.40–$4.00. You can set a monthly spending limit at <strong>platform.openai.com → Settings → Billing → Usage limits</strong>.
+  </div>
+
+  <form action="/setup" method="post">
+    <div class="field">
+      <label for="api_key">OpenAI API key</label>
+      <input
+        type="password"
+        id="api_key"
+        name="api_key"
+        placeholder="sk-..."
+        autocomplete="off"
+        required
+        class="input-wide"
+      >
+    </div>
+    <button type="submit" class="btn-primary">Save key and continue</button>
+  </form>
+
+  <p class="help-text">Need more help? See <a href="https://github.com/MorrisGlr/clinical-anki-generator/blob/main/SETUP.md">SETUP.md</a> for a detailed walkthrough.</p>
+</div>
+{% endblock %}

@@ -7,7 +7,7 @@
 
 **Transform saved UWorld questions into AI-enhanced Anki flashcards in under 5 minutes. Built for MS3/MS4 clerkship and shelf exam prep.**
 
-> **Note on the repo name:** This repository is named `clinical-anki-generator` to help medical students find it via GitHub search. The tool itself is called **HEART** (HTML-to-Anki Enhanced Human Explanation & Reasoning Tool) -- that is the name of the CLI command you will run and the name used throughout this documentation.
+> **Note on the repo name:** This repository is named `clinical-anki-generator` to help medical students find it via GitHub search. The tool itself is called **HEART** (HTML-to-Anki Enhanced Human Explanation & Reasoning Tool) -- that is the name of the command line interface (CLI) command you will run and the name used throughout this documentation.
 
 ---
 
@@ -19,7 +19,26 @@
 
 ---
 
-## Quick Start
+## Quick Start (Recommended)
+
+**New to the command line?** Follow the step-by-step guide in [SETUP.md](SETUP.md). It covers downloading HEART, getting an OpenAI API key, and running the setup script — no prior terminal experience needed.
+
+After setup, verify everything works with:
+
+```bash
+heart check
+```
+
+Then drop your saved HTML files into `html_dump/` and run:
+
+```bash
+heart --platform uworld --tags
+```
+
+Import the generated file from `gen_anki/` into Anki using File > Import.
+
+<details>
+<summary>Developer Setup (manual install)</summary>
 
 ```bash
 # 1. Clone and install
@@ -27,13 +46,13 @@ git clone https://github.com/MorrisGlr/clinical-anki-generator.git && cd clinica
 pip install -e .
 
 # 2. Add your OpenAI API key
-cp .env.example .env   # then open .env and paste your key
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
 
-# 3. Drop saved UWorld HTML files into html_dump/ and run
+# 3. Drop saved HTML files into html_dump/ and run
 heart --platform uworld --tags
 ```
 
-Import the generated file from `gen_anki/` into Anki using File > Import.
+</details>
 
 ---
 
@@ -41,21 +60,21 @@ Import the generated file from `gen_anki/` into Anki using File > Import.
 
 Each processed UWorld question becomes an Anki card with:
 
-- **Vignette analysis** -- a step-by-step breakdown of how to work through the clinical stem
-- **Distractor logic** -- why each wrong answer is wrong and what clinical scenario would make it correct
-- **Pathophysiology review** -- the underlying mechanism connecting the question to its answer
-- **First/second/third-line treatment hierarchy** -- when applicable
-- **Auto-generated tags** -- six normalized tags per card (e.g., `cardiology heart_failure diuretics renal shelf-exam uworld`) for structured review in Anki
-- **Confidence score** -- logged per card so you can spot questions where the LLM is less certain
-- **Optional validation pass** -- a second lightweight LLM call flags cards that may contain errors (`--validate`)
+- **Vignette analysis** -- a step-by-step breakdown of how to work through the clinical stem.
+- **Distractor logic** -- why each wrong answer is wrong and what clinical scenario would make it correct.
+- **Pathophysiology review** -- the underlying mechanism connecting the question to its answer.
+- **First/second/third-line treatment hierarchy** -- when applicable.
+- **Auto-generated tags** -- six normalized tags per card (e.g., `cardiology heart_failure diuretics renal shelf-exam uworld`) for structured review in Anki.
+- **Confidence score** -- logged per card so you can spot questions where the LLM is less certain.
+- **Optional validation pass** -- a second lightweight LLM call flags cards that may contain errors (`--validate`).
 
 ### Format options
 
 | Flag | Output |
 |---|---|
-| `--format basic` (default) | Question stem on front, full enrichment on back |
-| `--format cloze` | AI-generated cloze deletion stem, enrichment on back |
-| `--format choices-front` | Question + answer choices on front |
+| `--format basic` (default) | Question stem on front, full enrichment on back. |
+| `--format cloze` | AI-generated cloze deletion stem, enrichment on back. |
+| `--format choices-front` | Question + answer choices on front. |
 
 ### Supported platforms
 
@@ -113,7 +132,7 @@ The privacy point is not incidental. Many medical students are cautious about up
 - **Platform fragility:** UWorld, AMBOSS, and APGO use generated CSS class names that can change with any frontend deployment. If parsing breaks after a platform update, open an issue.
 - **Image handling:** Image copying is confirmed for UWorld's `*_files/` companion directories. AMBOSS and APGO image handling is unverified.
 - **Anki media path:** The default Anki media path is the macOS path (`~/Library/Application Support/Anki2/User 1/collection.media`). Override it with `--anki-media` on Windows or Linux.
-- **Cost estimate:** Token costs depend on question length and model. Cached input tokens are billed at a discount by OpenAI; the run-total log notes this but does not compute the discounted rate.
+- **Cost estimate:** Token costs depend on question length and model. Cached input tokens are billed at a discount by OpenAI; the run-total log notes this but does not compute the discounted rate. Models and pricing are regularly updated by OpenAI who are not affiliated to this project so these are only estimates. Please check your actual costs on the OpenAI API platform.
 
 ---
 

@@ -1,8 +1,114 @@
 import argparse
+import os
+import sys
+import webbrowser
 from pathlib import Path
+
+# ANSI color codes (stdlib only; safe on macOS Terminal and iTerm2)
+_GREEN = "\033[32m"
+_RED = "\033[31m"
+_RESET = "\033[0m"
+
+
+def _check_command() -> int:
+    """Run environment checks and report pass/fail for each item."""
+    all_ok = True
+
+    def _ok(msg: str) -> None:
+        print(f"  {_GREEN}✓{_RESET}  {msg}")
+
+    def _fail(msg: str, advice: str = "") -> None:
+        nonlocal all_ok
+        all_ok = False
+        print(f"  {_RED}✗{_RESET}  {msg}")
+        if advice:
+            print(f"       {advice}")
+
+    # Python version
+    major, minor = sys.version_info[:2]
+    if major >= 3 and minor >= 10:
+        _ok(f"Python {major}.{minor}.{sys.version_info[2]}")
+    else:
+        _fail(
+            f"Python {major}.{minor} — version 3.10 or later required",
+            "Install from https://www.python.org/downloads/ and re-run ./setup.sh",
+        )
+
+    # API key
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if api_key:
+        _ok("OPENAI_API_KEY is set")
+    else:
+        _fail(
+            "OPENAI_API_KEY is not set",
+            "Run ./setup.sh to add your key, or see SETUP.md → 'Get your OpenAI API key'",
+        )
+
+    # Input directory
+    input_dir = Path("./html_dump")
+    if input_dir.exists():
+        _ok(f"Input directory {input_dir} exists")
+    else:
+        _fail(
+            f"Input directory {input_dir} not found",
+            f"Create it with: mkdir {input_dir}",
+        )
+
+    # Output directory
+    output_dir = Path("./gen_anki")
+    if not output_dir.exists():
+        try:
+            output_dir.mkdir(parents=True)
+            _ok(f"Output directory {output_dir} created")
+        except OSError as exc:
+            _fail(
+                f"Output directory {output_dir} could not be created: {exc}",
+                "Check that you have write permissions in this folder",
+            )
+    else:
+        test_file = output_dir / ".heartcheck"
+        try:
+            test_file.touch()
+            test_file.unlink()
+            _ok(f"Output directory {output_dir} exists and is writable")
+        except OSError:
+            _fail(
+                f"Output directory {output_dir} exists but is not writable",
+                "Check folder permissions",
+            )
+
+    return 0 if all_ok else 1
+
+
+def _serve_command(argv: list[str]) -> None:
+    """Launch the HEART local web UI."""
+    parser = argparse.ArgumentParser(prog="heart serve", description="Launch the HEART web UI.")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=7070,
+        help="Port to listen on (default: 7070)",
+    )
+    args = parser.parse_args(argv)
+
+    from heart.server.app import create_app
+
+    app = create_app()
+    url = f"http://localhost:{args.port}"
+    print(f"Starting HEART web UI at {url}")
+    print("Press Ctrl+C to stop.")
+    webbrowser.open(url)
+    app.run(port=args.port, debug=False, use_reloader=False)
 
 
 def main(argv=None):
+    # Dispatch subcommands before the main argparse so --platform is not required.
+    argv = list(argv) if argv is not None else sys.argv[1:]
+    if argv and argv[0] == "check":
+        sys.exit(_check_command())
+    if argv and argv[0] == "serve":
+        _serve_command(argv[1:])
+
     parser = argparse.ArgumentParser(
         prog="heart",
         description="Convert question bank HTML/text files to Anki flashcards.",
@@ -67,6 +173,18 @@ def main(argv=None):
     )
 
     args = parser.parse_args(argv)
+
+    # API key guard — check before importing openai or calling the pipeline.
+    if not os.environ.get("OPENAI_API_KEY"):
+        print(
+            "\nError: OPENAI_API_KEY is not set.\n"
+            "\nTo fix this:\n"
+            "  1. Follow the API key setup guide in SETUP.md\n"
+            "  2. Re-run: ./setup.sh\n"
+            "  3. Verify with: heart check\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     input_path = args.input or Path("./html_dump")
 
