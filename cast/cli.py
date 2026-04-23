@@ -134,12 +134,10 @@ def main(argv=None):
         default=Path("./gen_anki"),
         help="Output directory for Anki flashcard files (default: ./gen_anki)",
     )
-    from cast.core import _default_anki_media_path
-
     parser.add_argument(
         "--anki-media",
         type=Path,
-        default=_default_anki_media_path(),
+        default=None,
         help=(
             "Anki collection.media directory, UWorld only "
             "(default: platform-specific Anki2/User 1/collection.media)"
@@ -182,6 +180,11 @@ def main(argv=None):
     )
 
     args = parser.parse_args(argv)
+
+    # Resolve --anki-media default lazily so parser construction never calls Path.home().
+    if args.anki_media is None:
+        from cast.core import _default_anki_media_path
+        args.anki_media = _default_anki_media_path()
 
     # API key guard — check before importing openai or calling the pipeline.
     if not os.environ.get("OPENAI_API_KEY"):

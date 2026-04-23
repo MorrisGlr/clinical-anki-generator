@@ -628,3 +628,11 @@ def test_default_anki_media_path_linux():
     assert ".local" in str(path)
     assert "share" in str(path)
     assert "Anki2" in str(path)
+
+
+def test_default_anki_media_path_no_home():
+    """Returns None when Path.home() raises RuntimeError (e.g. stripped CI env)."""
+    with patch("cast.core.Path") as mock_path_cls:
+        mock_path_cls.home.side_effect = RuntimeError("Could not determine home directory.")
+        path = _default_anki_media_path()
+    assert path is None

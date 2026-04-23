@@ -210,7 +210,10 @@ def create_app(output_dir: Path | None = None) -> Flask:
 
         anki_media_path = run.get("anki_media_path")
         if not anki_media_path:
-            anki_media_path = str(_default_anki_media_path())
+            default = _default_anki_media_path()
+            if default is None:
+                return jsonify({"error": "Anki media folder could not be determined. Pass the path explicitly."}), 400
+            anki_media_path = str(default)
 
         # Collect image paths from all stored cards (cards don't store image_paths,
         # so we re-derive them from the output directory companion folder)

@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import markdown as _markdown
 from bs4 import BeautifulSoup
@@ -22,15 +22,22 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-def _default_anki_media_path() -> Path:
-    """Return the platform-appropriate default Anki collection.media directory."""
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "Anki2" / "User 1" / "collection.media"
-    if sys.platform == "win32":
-        appdata = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
-        return Path(appdata) / "Anki2" / "User 1" / "collection.media"
-    # Linux and other Unix-like systems
-    return Path.home() / ".local" / "share" / "Anki2" / "User 1" / "collection.media"
+def _default_anki_media_path() -> Optional[Path]:
+    """Return the platform-appropriate default Anki collection.media directory.
+
+    Returns None when the home directory cannot be determined (e.g. stripped CI
+    environments where USERPROFILE/HOME env vars are absent).
+    """
+    try:
+        if sys.platform == "darwin":
+            return Path.home() / "Library" / "Application Support" / "Anki2" / "User 1" / "collection.media"
+        if sys.platform == "win32":
+            appdata = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+            return Path(appdata) / "Anki2" / "User 1" / "collection.media"
+        # Linux and other Unix-like systems
+        return Path.home() / ".local" / "share" / "Anki2" / "User 1" / "collection.media"
+    except RuntimeError:
+        return None
 
 _MODEL = "gpt-5.4"
 _VALIDATOR_MODEL = "gpt-5.4-mini"  # lightweight model for contradiction checking
