@@ -281,6 +281,7 @@ select:focus, input:focus {
 .feed-item.done       { color: var(--success); }
 .feed-item.skipped    { color: var(--warning); }
 .feed-item.flagged    { color: var(--warning); background: #fff8e6; }
+.feed-item.warning    { color: var(--warning); background: #fff8e6; }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 .summary { margin-top: 24px; }

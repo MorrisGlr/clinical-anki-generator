@@ -73,6 +73,14 @@
       feed.appendChild(li);
     }
 
+    if (data.type === "warning") {
+      const li = document.createElement("li");
+      li.className = "feed-item warning";
+      li.textContent = "⚠ " + (data.message || "Warning");
+      feed.appendChild(li);
+      li.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
     if (data.type === "done") {
       source.close();
       spinner.classList.add("hidden");

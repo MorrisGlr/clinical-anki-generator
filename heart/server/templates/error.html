@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}HEART — Unexpected Error{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 640px; margin: 0 auto;">
+  <h1>Something went wrong</h1>
+  <p class="subtitle">An unexpected error occurred. Your files have not been modified.</p>
+
+  <div class="alert alert-error" style="margin: 16px 0;">
+    <strong>Error:</strong> {{ error | e }}
+  </div>
+
+  <p>Try going back and submitting your files again. If the problem persists, the technical details below may help.</p>
+
+  <details style="margin-top: 16px;">
+    <summary style="cursor: pointer; font-weight: 600; color: var(--text-muted);">Technical details</summary>
+    <div style="margin-top: 8px; display: flex; gap: 8px; align-items: flex-start;">
+      <pre id="tb-pre" style="flex:1; background: #f4f4f4; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">{{ traceback | e }}</pre>
+      <button onclick="copyTraceback()" id="copy-btn" style="flex-shrink:0; padding: 6px 12px; font-size: 12px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: #fff;">Copy</button>
+    </div>
+  </details>
+
+  <div class="btn-row" style="margin-top: 24px;">
+    <a href="/" class="btn-primary">Back to home</a>
+    <a href="javascript:history.back()" class="btn-secondary">Go back</a>
+  </div>
+</div>
+
+<script>
+  function copyTraceback() {
+    const text = document.getElementById("tb-pre").textContent;
+    navigator.clipboard.writeText(text).then(function () {
+      const btn = document.getElementById("copy-btn");
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = "Copy"; }, 2000);
+    });
+  }
+</script>
+{% endblock %}

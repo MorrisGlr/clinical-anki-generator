@@ -130,6 +130,42 @@ def test_api_key_guard_exits_cleanly(capsys):
     assert "Traceback" not in captured.err
 
 
+# ── --quiet flag ─────────────────────────────────────────────────────────────
+
+
+def test_quiet_suppresses_traceback_on_heart_error(capsys, tmp_path):
+    """--quiet prints the friendly message but not a traceback."""
+    from heart.core import HeartUserError
+
+    with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}), \
+         patch("heart.parsers.get_parser", return_value=(lambda c, f: [], "prompt")), \
+         patch("heart.core.run_pipeline", side_effect=HeartUserError("Bad input", "Fix it")):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--platform", "uworld", "--quiet"])
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "Bad input" in captured.err
+    assert "Fix it" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_no_quiet_shows_traceback_on_heart_error(capsys, tmp_path):
+    """Without --quiet, a traceback is printed before the friendly message."""
+    from heart.core import HeartUserError
+
+    with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}), \
+         patch("heart.parsers.get_parser", return_value=(lambda c, f: [], "prompt")), \
+         patch("heart.core.run_pipeline", side_effect=HeartUserError("Bad input", "Fix it")):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--platform", "uworld"])
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "Bad input" in captured.err
+    assert "Traceback" in captured.err
+
+
 def test_check_subcommand_dispatched(capsys, tmp_path):
     """heart check exits with 0/1, not argparse error about --platform."""
     html_dump = tmp_path / "html_dump"

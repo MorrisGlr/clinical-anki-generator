@@ -250,4 +250,11 @@ def create_app(output_dir: Path | None = None) -> Flask:
             mimetype="text/plain",
         )
 
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(exc):
+        import traceback as _tb
+
+        tb_text = _tb.format_exc()
+        return render_template("error.html", error=str(exc), traceback=tb_text), 500
+
     return app

@@ -9,6 +9,10 @@ from heart.core import (
     CardUsage,
     ClozeResult,
     EnrichmentResult,
+    HeartAPIError,
+    HeartError,
+    HeartParseError,
+    HeartUserError,
     ParsedQuestion,
     ValidationResult,
     _INPUT_COST_PER_1K_TOKENS,
@@ -528,3 +532,68 @@ def test_run_pipeline_format_choices_front_drops_answer_list_from_back(mock_gen,
     content = list(output_dir.glob("*.txt"))[0].read_text(encoding="utf-8")
     back = content.split("\t")[1]
     assert "CHOICES" not in back
+
+
+# ── HeartError hierarchy ──────────────────────────────────────────────────────
+
+
+def test_heart_error_is_base():
+    err = HeartError("Something broke", "Try this fix")
+    assert isinstance(err, Exception)
+    assert err.user_message == "Something broke"
+    assert err.advice == "Try this fix"
+    assert str(err) == "Something broke"
+
+
+def test_heart_user_error_is_heart_error():
+    err = HeartUserError("Bad input", "Check your files")
+    assert isinstance(err, HeartError)
+    assert err.user_message == "Bad input"
+
+
+def test_heart_api_error_is_heart_error():
+    err = HeartAPIError("API unreachable", "Check your connection")
+    assert isinstance(err, HeartError)
+
+
+def test_heart_parse_error_is_heart_error():
+    err = HeartParseError("Parsing failed", "Check the HTML format")
+    assert isinstance(err, HeartError)
+
+
+# ── run_pipeline pre-run validation ──────────────────────────────────────────
+
+
+def test_run_pipeline_raises_on_missing_api_key(tmp_path):
+    from heart.core import run_pipeline
+
+    input_file = tmp_path / "input.html"
+    input_file.write_text("<html></html>", encoding="utf-8")
+
+    with patch.dict("os.environ", {}, clear=True):
+        with pytest.raises(HeartUserError, match="OPENAI_API_KEY"):
+            run_pipeline(lambda c, f: [], "prompt", input_file, tmp_path / "out")
+
+
+def test_run_pipeline_raises_on_missing_input_path(tmp_path):
+    from heart.core import run_pipeline
+
+    with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
+        with pytest.raises(HeartUserError, match="not found"):
+            run_pipeline(
+                lambda c, f: [],
+                "prompt",
+                tmp_path / "nonexistent",
+                tmp_path / "out",
+            )
+
+
+def test_run_pipeline_raises_on_empty_html_directory(tmp_path):
+    from heart.core import run_pipeline
+
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+
+    with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
+        with pytest.raises(HeartUserError, match="No HTML files"):
+            run_pipeline(lambda c, f: [], "prompt", empty_dir, tmp_path / "out")

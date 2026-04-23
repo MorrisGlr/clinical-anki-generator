@@ -220,6 +220,27 @@ def test_copy_media_returns_404_for_unknown_run(client):
     assert resp.status_code == 404
 
 
+# ── Global error handler ──────────────────────────────────────────────────────
+
+
+def test_global_error_handler_returns_500(client):
+    """An unhandled exception in any route renders the error.html page with HTTP 500."""
+    from heart.server.app import create_app
+
+    app = create_app()
+    app.config["TESTING"] = True
+
+    @app.route("/explode")
+    def explode():
+        raise RuntimeError("kaboom")
+
+    with app.test_client() as c:
+        resp = c.get("/explode")
+    assert resp.status_code == 500
+    assert b"kaboom" in resp.data
+    assert b"Something went wrong" in resp.data
+
+
 def test_copy_media_calls_copy_media_fn(client, tmp_path):
     # Set up a run with a real output path and a fake anki media dir
     anki_dir = tmp_path / "anki_media"

@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import traceback
 import webbrowser
 from pathlib import Path
 
@@ -171,6 +172,12 @@ def main(argv=None):
             "'choices-front': answer choices on the front, correct answer + explanation on back."
         ),
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        default=False,
+        help="Suppress tracebacks; print only a short friendly error message on failure.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -188,20 +195,38 @@ def main(argv=None):
 
     input_path = args.input or Path("./html_dump")
 
-    from heart.core import run_pipeline
+    from heart.core import HeartError, run_pipeline
     from heart.parsers import get_parser
 
-    parse_fn, system_prompt = get_parser(args.platform)
-    run_pipeline(
-        parse_fn=parse_fn,
-        system_prompt=system_prompt,
-        input_path=input_path,
-        output_dir=args.output,
-        anki_media_path=str(args.anki_media) if args.platform == "uworld" else None,
-        tags=args.tags,
-        validate=args.validate,
-        format=args.format,
-    )
+    try:
+        parse_fn, system_prompt = get_parser(args.platform)
+        run_pipeline(
+            parse_fn=parse_fn,
+            system_prompt=system_prompt,
+            input_path=input_path,
+            output_dir=args.output,
+            anki_media_path=str(args.anki_media) if args.platform == "uworld" else None,
+            tags=args.tags,
+            validate=args.validate,
+            format=args.format,
+        )
+    except HeartError as exc:
+        if not args.quiet:
+            traceback.print_exc()
+        print(f"\nError: {exc.user_message}", file=sys.stderr)
+        if exc.advice:
+            print(f"  → {exc.advice}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as exc:
+        if not args.quiet:
+            traceback.print_exc()
+        print(f"\nUnexpected error: {exc}", file=sys.stderr)
+        print(
+            "  → If this keeps happening, please open an issue at "
+            "https://github.com/MorrisGlr/clinical-anki-generator/issues",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":

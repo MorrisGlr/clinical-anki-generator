@@ -49,6 +49,27 @@ _VALIDATION_SYSTEM_PROMPT = (
 )
 
 
+class HeartError(Exception):
+    """Base class for all HEART user-facing errors."""
+
+    def __init__(self, user_message: str, advice: str = "") -> None:
+        super().__init__(user_message)
+        self.user_message = user_message
+        self.advice = advice
+
+
+class HeartUserError(HeartError):
+    """Bad input, missing files, or missing API key — user can fix this."""
+
+
+class HeartAPIError(HeartError):
+    """OpenAI API call failed."""
+
+
+class HeartParseError(HeartError):
+    """Parser could not extract the expected content."""
+
+
 class EnrichmentResult(BaseModel):
     enrichment_markdown: str
     tags: list[str]
@@ -187,16 +208,24 @@ def generate_enrichment(
     status_thread.start()
     start_time = time.time()
     try:
-        response = client.beta.chat.completions.parse(
-            model=_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question + "\n" + answer},
-            ],
-            temperature=0.75,
-            max_tokens=4096,
-            response_format=EnrichmentResult,
-        )
+        try:
+            response = client.beta.chat.completions.parse(
+                model=_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question + "\n" + answer},
+                ],
+                temperature=0.75,
+                max_tokens=4096,
+                response_format=EnrichmentResult,
+            )
+        except HeartAPIError:
+            raise
+        except Exception as exc:
+            raise HeartAPIError(
+                "Could not reach the OpenAI API.",
+                "Check your internet connection and that your API key is valid. Run 'heart check' to verify.",
+            ) from exc
     finally:
         stop_event.set()
         status_thread.join()
@@ -216,16 +245,24 @@ def generate_enrichment(
 
 def validate_enrichment(enrichment_markdown: str) -> tuple[ValidationResult, CardUsage]:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.beta.chat.completions.parse(
-        model=_VALIDATOR_MODEL,
-        messages=[
-            {"role": "system", "content": _VALIDATION_SYSTEM_PROMPT},
-            {"role": "user", "content": enrichment_markdown},
-        ],
-        temperature=0.0,
-        max_tokens=256,
-        response_format=ValidationResult,
-    )
+    try:
+        response = client.beta.chat.completions.parse(
+            model=_VALIDATOR_MODEL,
+            messages=[
+                {"role": "system", "content": _VALIDATION_SYSTEM_PROMPT},
+                {"role": "user", "content": enrichment_markdown},
+            ],
+            temperature=0.0,
+            max_tokens=256,
+            response_format=ValidationResult,
+        )
+    except HeartAPIError:
+        raise
+    except Exception as exc:
+        raise HeartAPIError(
+            "Could not reach the OpenAI API.",
+            "Check your internet connection and that your API key is valid. Run 'heart check' to verify.",
+        ) from exc
     usage_obj = response.usage
     details = getattr(usage_obj, "prompt_tokens_details", None)
     cached = getattr(details, "cached_tokens", 0) or 0
@@ -239,16 +276,24 @@ def validate_enrichment(enrichment_markdown: str) -> tuple[ValidationResult, Car
 
 def generate_cloze(question_stem: str, correct_answer: str) -> tuple[ClozeResult, CardUsage]:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.beta.chat.completions.parse(
-        model=_CLOZE_MODEL,
-        messages=[
-            {"role": "system", "content": _CLOZE_SYSTEM_PROMPT},
-            {"role": "user", "content": f"Question: {question_stem}\nCorrect answer: {correct_answer}"},
-        ],
-        temperature=0.0,
-        max_tokens=512,
-        response_format=ClozeResult,
-    )
+    try:
+        response = client.beta.chat.completions.parse(
+            model=_CLOZE_MODEL,
+            messages=[
+                {"role": "system", "content": _CLOZE_SYSTEM_PROMPT},
+                {"role": "user", "content": f"Question: {question_stem}\nCorrect answer: {correct_answer}"},
+            ],
+            temperature=0.0,
+            max_tokens=512,
+            response_format=ClozeResult,
+        )
+    except HeartAPIError:
+        raise
+    except Exception as exc:
+        raise HeartAPIError(
+            "Could not reach the OpenAI API.",
+            "Check your internet connection and that your API key is valid. Run 'heart check' to verify.",
+        ) from exc
     usage_obj = response.usage
     details = getattr(usage_obj, "prompt_tokens_details", None)
     cached = getattr(details, "cached_tokens", 0) or 0
@@ -287,6 +332,17 @@ _VALIDATION_BANNER = (
 )
 
 
+class _ProgressWarningHandler(logging.Handler):
+    """Forwards WARNING log records from the 'heart' logger to the SSE progress callback."""
+
+    def __init__(self, callback: Callable[[str], None]) -> None:
+        super().__init__(level=logging.WARNING)
+        self._callback = callback
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self._callback(json.dumps({"type": "warning", "message": self.format(record)}))
+
+
 def run_pipeline(
     parse_fn,
     system_prompt: str,
@@ -315,20 +371,43 @@ def run_pipeline(
         if progress_callback:
             progress_callback(json.dumps(event))
 
+    # Pre-run validation
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HeartUserError(
+            "OPENAI_API_KEY is not set.",
+            "Run ./setup.sh or add your key to .env. See SETUP.md for instructions.",
+        )
+
+    input_path = Path(input_path)
+    if not input_path.exists():
+        raise HeartUserError(
+            f"Input path not found: {input_path}",
+            "Check that you saved the HTML files to the correct folder and try again.",
+        )
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     if output_file_path is None:
         output_file_path = output_dir / f"{datetime.now().strftime('%Y-%m-%d_%H-%M')}.txt"
     output_file_path = Path(output_file_path)
 
-    input_path = Path(input_path)
-
     if input_path.is_file():
         file_pairs = [(input_path.read_text(encoding="utf-8"), str(input_path))]
     else:
         html_files = sorted(f for f in input_path.iterdir() if f.suffix == ".html")
+        if not html_files:
+            raise HeartUserError(
+                f"No HTML files found in {input_path}",
+                "Make sure you saved the question pages as HTML files and placed them in this folder.",
+            )
         print(f"Number of HTML files in the directory: {len(html_files)}")
         file_pairs = [(f.read_text(encoding="utf-8"), str(f)) for f in html_files]
+
+    # Attach warning handler so parser WARNINGs appear as SSE events
+    _warning_handler: _ProgressWarningHandler | None = None
+    if progress_callback:
+        _warning_handler = _ProgressWarningHandler(progress_callback)
+        logging.getLogger("heart").addHandler(_warning_handler)
 
     card_num = 0
     skipped = 0
@@ -448,6 +527,9 @@ def run_pipeline(
     except Exception as exc:
         _emit({"type": "error", "message": str(exc)})
         raise
+    finally:
+        if _warning_handler:
+            logging.getLogger("heart").removeHandler(_warning_handler)
 
     total_cost = (
         total_input * _INPUT_COST_PER_1K_TOKENS
