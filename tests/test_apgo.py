@@ -1,9 +1,9 @@
-"""Tests for the APGO HTML parser (heart/parsers/apgo.py)."""
+"""Tests for the APGO HTML parser (cast/parsers/apgo.py)."""
 import logging
 from pathlib import Path
 
-from heart.core import format_for_anki
-from heart.parsers.apgo import parse
+from cast.core import format_for_anki
+from cast.parsers.apgo import parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "apgo_sample.html"
 HTML_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
@@ -79,7 +79,7 @@ FALLBACK_HTML = FALLBACK_FIXTURE.read_text(encoding="utf-8")
 
 
 def test_fallback_fixture_correct_answer_extracted_via_aria(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         results = parse(FALLBACK_HTML, str(FALLBACK_FIXTURE))
     assert len(results) == 1
     pq = results[0]

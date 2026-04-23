@@ -1,4 +1,4 @@
-# Setting Up HEART
+# Setting Up CAST
 
 This guide is written for medical students, residents, and physicians who have not set up a command-line tool before. Follow the section for your operating system.
 
@@ -17,7 +17,7 @@ This guide is written for medical students, residents, and physicians who have n
 
 ## Get your OpenAI API key
 
-HEART uses OpenAI to generate the enriched explanations on your flashcards. You need an API key to authorize this. This step is the same on all platforms.
+CAST uses OpenAI to generate the enriched explanations on your flashcards. You need an API key to authorize this. This step is the same on all platforms.
 
 > **Note on cost:** API calls are billed by OpenAI based on usage. A typical batch of 40 cards costs roughly $0.40–$4.00 depending on the model. You set your own spending limits in your OpenAI account.
 
@@ -31,7 +31,7 @@ HEART uses OpenAI to generate the enriched explanations on your flashcards. You 
 
 4. Click **Create new secret key**.
 
-5. Give it a name like `HEART` (optional, for your own reference).
+5. Give it a name like `CAST` (optional, for your own reference).
 
 6. Click **Create secret key**.
 
@@ -49,7 +49,7 @@ To avoid unexpected charges, set a monthly usage limit in your OpenAI account:
 
 ## macOS
 
-### Step 1 — Download HEART
+### Step 1 — Download CAST
 
 **Option A: Download as a ZIP (recommended for most users)**
 
@@ -82,7 +82,7 @@ Terminal is a built-in macOS app that lets you run commands.
 2. Type `Terminal` and press **Enter**.
 3. A white (or black) window with a text cursor appears. This is Terminal.
 
-### Step 3 — Navigate to the HEART folder
+### Step 3 — Navigate to the CAST folder
 
 1. Type `cd ` (with a space after `cd`) but do not press Enter yet.
 2. Open Finder and locate the `clinical-anki-generator-main` folder you downloaded.
@@ -102,7 +102,7 @@ The script will:
 1. Check that your Mac meets the requirements
 2. Install Python if needed (it will tell you exactly what to run)
 3. Set up a self-contained environment
-4. Install HEART and its dependencies
+4. Install CAST and its dependencies
 5. Ask you to paste your OpenAI API key
 6. Confirm everything is working
 
@@ -113,12 +113,12 @@ Follow any on-screen prompts. The whole process takes 1–3 minutes.
 ### Step 5 — Verify the setup
 
 ```
-heart check
+cast check
 ```
 
 You should see all green checkmarks. If any item shows a red ✗, see Troubleshooting below.
 
-### Activate HEART in future sessions
+### Activate CAST in future sessions
 
 Each time you open a new Terminal window:
 
@@ -128,7 +128,7 @@ source .venv/bin/activate
 
 ### macOS Troubleshooting
 
-**`heart: command not found`** — The virtual environment is not activated. Run `source .venv/bin/activate`.
+**`cast: command not found`** — The virtual environment is not activated. Run `source .venv/bin/activate`.
 
 **`OPENAI_API_KEY is not set`** — Run `./setup.sh` again, or open `.env` in any text editor and add: `OPENAI_API_KEY=sk-your-key-here`
 
@@ -140,7 +140,7 @@ source .venv/bin/activate
 
 ## Windows
 
-### Step 1 — Download HEART
+### Step 1 — Download CAST
 
 1. Open your browser and go to:
    `https://github.com/MorrisGlr/clinical-anki-generator`
@@ -161,7 +161,7 @@ source .venv/bin/activate
 2. Click **Windows PowerShell** (not "PowerShell ISE").
 3. A blue window with a text cursor appears.
 
-### Step 3 — Navigate to the HEART folder
+### Step 3 — Navigate to the CAST folder
 
 1. Type `cd ` (with a space) but do not press Enter yet.
 2. Open File Explorer and navigate to the `clinical-anki-generator-main` folder.
@@ -189,7 +189,7 @@ The script will:
 1. Check that your Windows installation meets the requirements
 2. Install Python if needed (it will give you the exact command)
 3. Set up a self-contained environment
-4. Install HEART and its dependencies
+4. Install CAST and its dependencies
 5. Ask you to paste your OpenAI API key
 6. Confirm everything is working
 
@@ -204,12 +204,12 @@ After installing, close and reopen PowerShell, then re-run `.\setup.ps1`.
 ### Step 6 — Verify the setup
 
 ```
-heart check
+cast check
 ```
 
 You should see all `[OK]` lines. If any show `[X]`, see Troubleshooting below.
 
-### Activate HEART in future sessions
+### Activate CAST in future sessions
 
 Each time you open a new PowerShell window:
 
@@ -219,7 +219,7 @@ Each time you open a new PowerShell window:
 
 ### Windows Troubleshooting
 
-**`heart: The term 'heart' is not recognized`** — The virtual environment is not activated. Run `.\.venv\Scripts\Activate.ps1`.
+**`cast: The term 'cast' is not recognized`** — The virtual environment is not activated. Run `.\.venv\Scripts\Activate.ps1`.
 
 **`OPENAI_API_KEY is not set`** — Run `.\setup.ps1` again, or open `.env` in Notepad and add: `OPENAI_API_KEY=sk-your-key-here`
 
@@ -233,7 +233,7 @@ Each time you open a new PowerShell window:
 
 ## Linux (Ubuntu)
 
-### Step 1 — Download HEART
+### Step 1 — Download CAST
 
 **Option A: Download as a ZIP**
 
@@ -257,7 +257,7 @@ git clone https://github.com/MorrisGlr/clinical-anki-generator
 
 Press **Ctrl + Alt + T**, or search for "Terminal" in your application launcher.
 
-### Step 3 — Navigate to the HEART folder
+### Step 3 — Navigate to the CAST folder
 
 ```
 cd ~/clinical-anki-generator-main
@@ -281,7 +281,7 @@ The script will:
 1. Detect that you are on Linux
 2. Install Python if needed (it will give you the exact `apt` command)
 3. Set up a self-contained virtual environment
-4. Install HEART and its dependencies
+4. Install CAST and its dependencies
 5. Ask you to paste your OpenAI API key
 6. Confirm everything is working
 
@@ -294,12 +294,12 @@ After installing, re-run `./setup.sh`.
 ### Step 5 — Verify the setup
 
 ```
-heart check
+cast check
 ```
 
 You should see all green checkmarks. If any show a red ✗, see Troubleshooting below.
 
-### Activate HEART in future sessions
+### Activate CAST in future sessions
 
 Each time you open a new Terminal window:
 
@@ -309,7 +309,7 @@ source .venv/bin/activate
 
 ### Linux Troubleshooting
 
-**`heart: command not found`** — The virtual environment is not activated. Run `source .venv/bin/activate`.
+**`cast: command not found`** — The virtual environment is not activated. Run `source .venv/bin/activate`.
 
 **`OPENAI_API_KEY is not set`** — Run `./setup.sh` again, or open `.env` in any text editor and add: `OPENAI_API_KEY=sk-your-key-here`
 
@@ -323,7 +323,7 @@ source .venv/bin/activate
 
 ## Saving HTML files (all platforms)
 
-Before running HEART, you need to save HTML pages from your question bank:
+Before running CAST, you need to save HTML pages from your question bank:
 
 1. In your browser (Chrome or Firefox), open a completed question in UWorld, AMBOSS, or APGO.
 
@@ -331,7 +331,7 @@ Before running HEART, you need to save HTML pages from your question bank:
 
 3. In the save dialog, make sure the format is set to **Web Page, Complete** (not "Web Archive" or "PDF").
 
-4. Save the file into the `html_dump` folder inside your HEART directory.
+4. Save the file into the `html_dump` folder inside your CAST directory.
 
 Repeat for each question you want to convert.
 
@@ -339,15 +339,15 @@ Repeat for each question you want to convert.
 
 ## Generate your flashcards (all platforms)
 
-In your terminal (make sure your virtual environment is activated and you are in the HEART folder):
+In your terminal (make sure your virtual environment is activated and you are in the CAST folder):
 
 ```
-heart --platform uworld
+cast --platform uworld
 ```
 
 Replace `uworld` with `amboss`, `apgo`, or `nbme` depending on your question bank.
 
-HEART will process each file and write a `.txt` output file to the `gen_anki/` folder.
+CAST will process each file and write a `.txt` output file to the `gen_anki/` folder.
 
 ---
 

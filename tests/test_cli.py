@@ -1,14 +1,14 @@
-"""Tests for heart CLI: heart check subcommand and API key guard."""
+"""Tests for cast CLI: cast check subcommand and API key guard."""
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from heart.cli import _check_command, main
+from cast.cli import _check_command, main
 
 
-# ── heart check ───────────────────────────────────────────────────────────────
+# ── cast check ───────────────────────────────────────────────────────────────
 
 
 def test_check_all_pass(tmp_path, capsys):
@@ -19,7 +19,7 @@ def test_check_all_pass(tmp_path, capsys):
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("heart.cli.Path") as mock_path_cls,
+        patch("cast.cli.Path") as mock_path_cls,
     ):
         # Map Path("./html_dump") and Path("./gen_anki") to tmp_path subdirs
         def path_side_effect(arg=""):
@@ -45,7 +45,7 @@ def test_check_missing_api_key(tmp_path, capsys):
 
     with (
         patch.dict("os.environ", {}, clear=True),
-        patch("heart.cli.Path") as mock_path_cls,
+        patch("cast.cli.Path") as mock_path_cls,
     ):
         def path_side_effect(arg=""):
             if arg == "./html_dump":
@@ -67,7 +67,7 @@ def test_check_missing_api_key(tmp_path, capsys):
 def test_check_missing_input_dir(tmp_path, capsys):
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("heart.cli.Path") as mock_path_cls,
+        patch("cast.cli.Path") as mock_path_cls,
     ):
         def path_side_effect(arg=""):
             if arg == "./html_dump":
@@ -95,7 +95,7 @@ def test_check_creates_missing_output_dir(tmp_path, capsys):
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("heart.cli.Path") as mock_path_cls,
+        patch("cast.cli.Path") as mock_path_cls,
     ):
         def path_side_effect(arg=""):
             if arg == "./html_dump":
@@ -135,11 +135,11 @@ def test_api_key_guard_exits_cleanly(capsys):
 
 def test_quiet_suppresses_traceback_on_heart_error(capsys, tmp_path):
     """--quiet prints the friendly message but not a traceback."""
-    from heart.core import HeartUserError
+    from cast.core import HeartUserError
 
     with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}), \
-         patch("heart.parsers.get_parser", return_value=(lambda c, f: [], "prompt")), \
-         patch("heart.core.run_pipeline", side_effect=HeartUserError("Bad input", "Fix it")):
+         patch("cast.parsers.get_parser", return_value=(lambda c, f: [], "prompt")), \
+         patch("cast.core.run_pipeline", side_effect=HeartUserError("Bad input", "Fix it")):
         with pytest.raises(SystemExit) as exc_info:
             main(["--platform", "uworld", "--quiet"])
 
@@ -152,11 +152,11 @@ def test_quiet_suppresses_traceback_on_heart_error(capsys, tmp_path):
 
 def test_no_quiet_shows_traceback_on_heart_error(capsys, tmp_path):
     """Without --quiet, a traceback is printed before the friendly message."""
-    from heart.core import HeartUserError
+    from cast.core import HeartUserError
 
     with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}), \
-         patch("heart.parsers.get_parser", return_value=(lambda c, f: [], "prompt")), \
-         patch("heart.core.run_pipeline", side_effect=HeartUserError("Bad input", "Fix it")):
+         patch("cast.parsers.get_parser", return_value=(lambda c, f: [], "prompt")), \
+         patch("cast.core.run_pipeline", side_effect=HeartUserError("Bad input", "Fix it")):
         with pytest.raises(SystemExit) as exc_info:
             main(["--platform", "uworld"])
 
@@ -167,13 +167,13 @@ def test_no_quiet_shows_traceback_on_heart_error(capsys, tmp_path):
 
 
 def test_check_subcommand_dispatched(capsys, tmp_path):
-    """heart check exits with 0/1, not argparse error about --platform."""
+    """cast check exits with 0/1, not argparse error about --platform."""
     html_dump = tmp_path / "html_dump"
     html_dump.mkdir()
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("heart.cli.Path") as mock_path_cls,
+        patch("cast.cli.Path") as mock_path_cls,
     ):
         def path_side_effect(arg=""):
             if arg == "./html_dump":

@@ -1,4 +1,4 @@
-"""Flask web UI for HEART — local server, no data leaves the machine except to OpenAI."""
+"""Flask web UI for CAST — local server, no data leaves the machine except to OpenAI."""
 import json
 import os
 import shutil
@@ -20,7 +20,7 @@ from flask import (
     url_for,
 )
 
-from heart.core import _default_anki_media_path, copy_media  # noqa: E402
+from cast.core import _default_anki_media_path, copy_media  # noqa: E402
 
 load_dotenv()
 
@@ -135,8 +135,8 @@ def create_app(output_dir: Path | None = None) -> Flask:
 
         def _worker():
             try:
-                from heart.core import run_pipeline
-                from heart.parsers import get_parser
+                from cast.core import run_pipeline
+                from cast.parsers import get_parser
 
                 parse_fn, system_prompt = get_parser(platform)
                 run_pipeline(

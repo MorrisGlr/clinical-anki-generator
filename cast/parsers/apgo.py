@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from heart.core import ParsedQuestion, try_selectors
+from cast.core import ParsedQuestion, try_selectors
 
 SYSTEM_PROMPT = (
     "You are a savvy expert with medical knowledge that trains medical students for NMBE"

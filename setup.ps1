@@ -1,4 +1,4 @@
-# setup.ps1 — HEART first-time setup for Windows 10+
+# setup.ps1 — CAST first-time setup for Windows 10+
 # Run from the project root in PowerShell:
 #   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # one-time, if needed
 #   .\setup.ps1
@@ -11,7 +11,7 @@ function info { param($msg) Write-Host "  " -NoNewline; Write-Host " ->  " -Fore
 function hr   { Write-Host ("─" * 42) }
 
 Write-Host ""
-Write-Host "HEART Setup — Windows" -ForegroundColor White
+Write-Host "CAST Setup — Windows" -ForegroundColor White
 hr
 
 # ── 1. Windows check ──────────────────────────────────────────────────────────
@@ -65,10 +65,10 @@ if (-not (Test-Path ".venv")) {
 & .\.venv\Scripts\Activate.ps1
 ok "Virtual environment activated"
 
-# ── 4. Install HEART ──────────────────────────────────────────────────────────
-info "Installing HEART and dependencies (this may take a minute) ..."
+# ── 4. Install CAST ──────────────────────────────────────────────────────────
+info "Installing CAST and dependencies (this may take a minute) ..."
 pip install --quiet -e .
-ok "HEART installed"
+ok "CAST installed"
 
 # ── 5. OpenAI API key ─────────────────────────────────────────────────────────
 hr
@@ -113,10 +113,10 @@ hr
 Write-Host ""
 info "Verifying installation ..."
 try {
-    & heart --help | Out-Null
-    ok "heart CLI is working"
+    & cast --help | Out-Null
+    ok "cast CLI is working"
 } catch {
-    fail "heart --help failed. Try running: pip install -e ."
+    fail "cast --help failed. Try running: pip install -e ."
     exit 1
 }
 
@@ -132,10 +132,10 @@ Write-Host "  1. Activate your environment before each session:"
 Write-Host "        .\.venv\Scripts\Activate.ps1"
 Write-Host ""
 Write-Host "  2. Verify everything is ready:"
-Write-Host "        heart check"
+Write-Host "        cast check"
 Write-Host ""
 Write-Host "  3. Place your saved HTML files in the html_dump\ folder, then run:"
-Write-Host "        heart --platform uworld"
+Write-Host "        cast --platform uworld"
 Write-Host ""
 Write-Host "  For full instructions, see SETUP.md"
 Write-Host ""

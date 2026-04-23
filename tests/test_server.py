@@ -1,4 +1,4 @@
-"""Tests for the HEART Flask web UI (heart/server/app.py)."""
+"""Tests for the CAST Flask web UI (cast/server/app.py)."""
 import io
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from heart.server.app import _RUNS, create_app
+from cast.server.app import _RUNS, create_app
 
 
 @pytest.fixture()
@@ -50,8 +50,8 @@ def test_setup_get_returns_200(client):
 
 def test_setup_post_saves_key_and_redirects(client, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    with patch("heart.server.app.set_key") as mock_set, \
-         patch("heart.server.app.load_dotenv"):
+    with patch("cast.server.app.set_key") as mock_set, \
+         patch("cast.server.app.load_dotenv"):
         resp = client.post("/setup", data={"api_key": "sk-abc123"})
     mock_set.assert_called_once_with(str(Path(".env")), "OPENAI_API_KEY", "sk-abc123")
     assert resp.status_code == 302
@@ -60,8 +60,8 @@ def test_setup_post_saves_key_and_redirects(client, tmp_path, monkeypatch):
 
 def test_setup_post_empty_key_still_redirects(client, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    with patch("heart.server.app.set_key") as mock_set, \
-         patch("heart.server.app.load_dotenv"):
+    with patch("cast.server.app.set_key") as mock_set, \
+         patch("cast.server.app.load_dotenv"):
         resp = client.post("/setup", data={"api_key": ""})
     mock_set.assert_not_called()
     assert resp.status_code == 302
@@ -82,7 +82,7 @@ def test_run_redirects_to_progress(client, tmp_path):
     html_content = b"<html><body>test</body></html>"
     dummy_file = (io.BytesIO(html_content), "question_1.html")
 
-    with patch("heart.server.app.threading.Thread") as mock_thread_cls, \
+    with patch("cast.server.app.threading.Thread") as mock_thread_cls, \
          patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
         mock_thread = MagicMock()
         mock_thread_cls.return_value = mock_thread
@@ -225,7 +225,7 @@ def test_copy_media_returns_404_for_unknown_run(client):
 
 def test_global_error_handler_returns_500(client):
     """An unhandled exception in any route renders the error.html page with HTTP 500."""
-    from heart.server.app import create_app
+    from cast.server.app import create_app
 
     app = create_app()
     app.config["TESTING"] = True
@@ -260,7 +260,7 @@ def test_copy_media_calls_copy_media_fn(client, tmp_path):
         "summary": None,
     }
     try:
-        with patch("heart.server.app.copy_media", return_value=[]) as mock_copy:
+        with patch("cast.server.app.copy_media", return_value=[]) as mock_copy:
             resp = client.post(f"/copy-media/{run_id}")
         assert resp.status_code == 200
         mock_copy.assert_called_once()

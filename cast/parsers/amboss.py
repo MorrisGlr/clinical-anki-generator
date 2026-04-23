@@ -1,13 +1,11 @@
-from pathlib import Path
-
 from bs4 import BeautifulSoup
 
-from heart.core import ParsedQuestion, try_selectors
+from cast.core import ParsedQuestion, try_selectors
 
 SYSTEM_PROMPT = (
-    "You are a biomedical and medical education expert specializing in preparing students"
-    " for NBME shelf exams. The level of detail should be proportionate to their relevance"
-    " to the vignette. Below is a practice question along with its answer.\n\n"
+    "You are a medical education expert specializing in preparing students for NBME shelf"
+    " exams. The level of detail should be proportionate to their relevance to the vignette."
+    " Below is a practice question along with its answer.\n\n"
     " Vignette Analysis: Identify and explain key words or phrases in the vignette that are"
     " critical for diagnosing the condition. Describe how these details help narrow down the"
     " differential diagnosis, focusing on what to rule in and rule out.\n\n"
@@ -34,100 +32,81 @@ SYSTEM_PROMPT = (
     " completeness of enrichment_markdown. 1.0 = fully confident, 0.0 = highly uncertain."
 )
 
-_QUESTION_SELECTORS = [
-    {"id": "questionText"},
-    {"id": "question-text"},
-    {"attrs": {"data-testid": "question-text"}},
-]
+# All known CSS class variants for the correct-answer div, tried in order.
+# Preserve all known-good variants; append new ones as selectors break.
 _CORRECT_ANSWER_SELECTORS = [
-    {"class_": "omitted-answer content d-flex align-items-start flex-column ng-star-inserted"},
-    {"class_": "omitted-answer content d-flex align-items-start flex-column"},
-    {"class_": "omitted-answer"},
+    {"class_": "container--CKAXW correctAnswer--xNrke"},
+    {"class_": "container--CKAXW pointer--eMKos correctAnswer--xNrke"},
+    {"class_": "-f8b48b6542a07-container -f8b48b6542a07-pointer -f8b48b6542a07-correctAnswer"},
+    {"class_": "correctAnswer"},
     {"attrs": {"aria-checked": "true"}},
 ]
-_ANSWER_LIST_SELECTORS = [
-    {"id": "answerContainer"},
-    {"id": "answer-container"},
-    {"class_": "answerContainer"},
-]
 _EXPLANATION_SELECTORS = [
-    {"id": "explanation-container"},
-    {"class_": "explanation-container"},
+    {"class_": "-f8b48b6542a07-explanationContainer"},
+    {"class_": "explanationContainer"},
+    {"attrs": {"aria-label": "explanation"}},
     {"id": "explanation"},
 ]
 
 
-def parse(content: str, file_path: str) -> list[ParsedQuestion]:
-    """Extract question fields from UWorld HTML content."""
-    soup = BeautifulSoup(content, "html.parser")
+def _question_id_from_path(file_path: str) -> str:
+    from pathlib import Path
 
-    question_div = try_selectors(soup, _QUESTION_SELECTORS, context="uworld:question")
+    filename = Path(file_path).name
+    for length in (3, 2, 1):
+        if len(filename) > length and filename[:length].isdigit():
+            return f"FLaJnh0OIM_{filename[:length]}"
+    return "FLaJnh0OIM_1"
+
+
+def parse(content: str, file_path: str) -> list[ParsedQuestion]:
+    """Extract question fields from AMBOSS HTML content."""
+    soup = BeautifulSoup(content, "html.parser")
+    question_id = _question_id_from_path(file_path)
+
+    question_selectors = [
+        {"id": question_id},
+        {"attrs": {"data-testid": "question-stem"}},
+        {"attrs": {"role": "main"}},
+    ]
+    question_div = try_selectors(
+        soup, question_selectors, context=f"amboss:question({question_id})"
+    )
     question_str = question_div.get_text(separator=" ", strip=True) if question_div else ""
     question_str = question_str.replace("\n", " ")
     try:
-        question_str = question_str.split(" ", 1)[1]
+        if question_str and question_str[0].isdigit():
+            question_str = question_str.split(" ", 1)[1]
     except IndexError:
-        print(
-            "Warning: Could not remove leading number from question string."
-            " Manual editing in Anki might be necessary. Continuing..."
-        )
+        print(f"Warning: Did not find a number at start of question for {question_id}")
 
     correct_answer_div = try_selectors(
-        soup, _CORRECT_ANSWER_SELECTORS, context="uworld:correct_answer"
+        soup, _CORRECT_ANSWER_SELECTORS, context="amboss:correct_answer"
     )
     correct_answer_str = (
         correct_answer_div.get_text(separator=" ", strip=True) if correct_answer_div else ""
     )
     correct_answer_str = correct_answer_str.replace("\n", " ")
-    correct_answer_str = correct_answer_str.replace("Omitted ", " ")
+    correct_answer_str = correct_answer_str.replace("Give feedback", "")
     correct_answer_str += "</br>"
-
-    answer_list_divs = try_selectors(
-        soup, _ANSWER_LIST_SELECTORS, find_all=True, context="uworld:answer_list"
-    )
-    answer_list_str = "".join(
-        f"{chr(65 + i)}. {div.get_text(separator=' ', strip=True)}"
-        for i, div in enumerate(answer_list_divs)
-    )
-    for i in range(1, 10):
-        answer_list_str = answer_list_str.replace(
-            f") {chr(64 + i)}. ", f")</br>{chr(64 + i)}. "
-        )
-    answer_list_str = answer_list_str.replace("\n", " ")
-    answer_list_str = answer_list_str.replace("A. A. ", "A. ")
-    answer_list_str = "</br>" + answer_list_str
+    correct_answer_str = "Correct Answer: " + correct_answer_str
 
     explanation_divs = try_selectors(
-        soup, _EXPLANATION_SELECTORS, find_all=True, context="uworld:explanation"
+        soup, _EXPLANATION_SELECTORS, find_all=True, context="amboss:explanation"
     )
     explanation_str = "</br></br>".join(
         div.get_text(separator=" ", strip=True) for div in explanation_divs
     )
     explanation_str = explanation_str.replace("\n", " ")
-    explanation_str = explanation_str.replace(" (Choice", "</br></br>(Choice")
-    explanation_str = explanation_str.replace("Explanation ", "")
-    explanation_str = explanation_str.replace(
-        "Topic Copyright \u00a9 UWorld. All rights reserved.", " "
-    )
-    explanation_str = explanation_str.replace("</br></br></br>Explanation: ", "</br>Explanation: ")
-    explanation_str = explanation_str.replace("User Id: 1514650 ", "")
-    explanation_str = "</br></br>" + explanation_str
-
-    # Collect image paths from companion *_files/ directory
-    image_paths: list[str] = []
-    if file_path.endswith(".html"):
-        files_dir = Path(file_path[:-5] + "_files")
-        if files_dir.is_dir():
-            for img in files_dir.iterdir():
-                if img.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif"}:
-                    image_paths.append(str(img))
+    explanation_str = explanation_str.replace("Give feedback", "")
+    explanation_str = "</br>" + explanation_str
 
     return [
         ParsedQuestion(
             question=question_str,
             correct_answer=correct_answer_str,
-            answer_list=answer_list_str,
+            answer_list="",
             explanation=explanation_str,
-            image_paths=image_paths,
+            image_paths=[],
         )
     ]

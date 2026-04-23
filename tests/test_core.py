@@ -1,11 +1,11 @@
-"""Tests for heart/core.py helpers (excluding LLM calls)."""
+"""Tests for cast/core.py helpers (excluding LLM calls)."""
 import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
 from bs4 import BeautifulSoup
 
-from heart.core import (
+from cast.core import (
     CardUsage,
     ClozeResult,
     EnrichmentResult,
@@ -63,9 +63,9 @@ def test_enrichment_result_markdown_rendered_to_html():
     assert "<strong>bold</strong>" in html
 
 
-@patch("heart.core.OpenAI")
+@patch("cast.core.OpenAI")
 def test_generate_enrichment_returns_enrichment_result(mock_openai_cls):
-    from heart.core import generate_enrichment
+    from cast.core import generate_enrichment
 
     mock_parsed = EnrichmentResult(
         enrichment_markdown="Explanation here.",
@@ -105,9 +105,9 @@ def test_card_usage_cost_zero_tokens():
     assert usage.cost_usd == 0.0
 
 
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_logs_per_card_debug(mock_gen, tmp_path, caplog):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text",
@@ -124,7 +124,7 @@ def test_run_pipeline_logs_per_card_debug(mock_gen, tmp_path, caplog):
     def fake_parse(content, file_path):
         return [ParsedQuestion(question="Q?", correct_answer="A", answer_list="", explanation="E")]
 
-    with caplog.at_level(logging.DEBUG, logger="heart.core"):
+    with caplog.at_level(logging.DEBUG, logger="cast.core"):
         run_pipeline(fake_parse, "system prompt", input_file, output_dir)
 
     assert any(
@@ -134,9 +134,9 @@ def test_run_pipeline_logs_per_card_debug(mock_gen, tmp_path, caplog):
     )
 
 
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_logs_run_total_info(mock_gen, tmp_path, caplog):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text",
@@ -158,7 +158,7 @@ def test_run_pipeline_logs_run_total_info(mock_gen, tmp_path, caplog):
             ParsedQuestion(question="Q2?", correct_answer="B", answer_list="", explanation="E"),
         ]
 
-    with caplog.at_level(logging.INFO, logger="heart.core"):
+    with caplog.at_level(logging.INFO, logger="cast.core"):
         run_pipeline(fake_parse, "system prompt", input_file, output_dir)
 
     total_records = [r for r in caplog.records if "Run total" in r.message]
@@ -178,7 +178,7 @@ def test_try_selectors_primary_match():
 
 def test_try_selectors_fallback_match_logs_warning(caplog):
     soup = BeautifulSoup('<div id="fallback">Q</div>', "html.parser")
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         result = try_selectors(
             soup,
             [{"id": "primary"}, {"id": "fallback"}],
@@ -191,7 +191,7 @@ def test_try_selectors_fallback_match_logs_warning(caplog):
 
 def test_try_selectors_all_fail_logs_warning(caplog):
     soup = BeautifulSoup("<div>nothing</div>", "html.parser")
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         result = try_selectors(soup, [{"id": "missing"}], context="test:field")
     assert result is None
     assert "All selectors failed" in caplog.text
@@ -210,7 +210,7 @@ def test_try_selectors_find_all_returns_list():
 
 def test_try_selectors_find_all_all_fail_returns_empty_list(caplog):
     soup = BeautifulSoup("<div>nothing</div>", "html.parser")
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         result = try_selectors(soup, [{"id": "missing"}], find_all=True, context="test:answers")
     assert result == []
 
@@ -221,7 +221,7 @@ def test_try_patterns_primary_match():
 
 
 def test_try_patterns_fallback_match_logs_warning(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         result = try_patterns(
             "Answers:\n1. A",
             [r"Answer Key:\n([\s\S]+)", r"Answers:\n([\s\S]+)"],
@@ -232,7 +232,7 @@ def test_try_patterns_fallback_match_logs_warning(caplog):
 
 
 def test_try_patterns_all_fail_logs_warning(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         result = try_patterns("no match here", [r"Answer Key:\n([\s\S]+)"], context="test:key")
     assert result is None
     assert "All patterns failed" in caplog.text
@@ -267,9 +267,9 @@ def test_format_for_anki_with_enrichment_result_tags():
 
 # --- validate_enrichment tests ---
 
-@patch("heart.core.OpenAI")
+@patch("cast.core.OpenAI")
 def test_validate_enrichment_returns_result_and_usage_not_flagged(mock_openai_cls):
-    from heart.core import validate_enrichment
+    from cast.core import validate_enrichment
 
     mock_val = ValidationResult(flagged=False, justification="No contradictions found.")
     mock_response = MagicMock()
@@ -291,9 +291,9 @@ def test_validate_enrichment_returns_result_and_usage_not_flagged(mock_openai_cl
     assert usage.output_tokens == 20
 
 
-@patch("heart.core.OpenAI")
+@patch("cast.core.OpenAI")
 def test_validate_enrichment_returns_flagged_true(mock_openai_cls):
-    from heart.core import validate_enrichment
+    from cast.core import validate_enrichment
 
     mock_val = ValidationResult(
         flagged=True, justification="Beta-blockers are stated to increase heart rate."
@@ -313,10 +313,10 @@ def test_validate_enrichment_returns_flagged_true(mock_openai_cls):
     assert "Beta-blockers" in val_result.justification
 
 
-@patch("heart.core.validate_enrichment")
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.validate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_validate_off_skips_validation(mock_gen, mock_val, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -334,10 +334,10 @@ def test_run_pipeline_validate_off_skips_validation(mock_gen, mock_val, tmp_path
     mock_val.assert_not_called()
 
 
-@patch("heart.core.validate_enrichment")
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.validate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_validate_on_calls_validation(mock_gen, mock_val, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -356,10 +356,10 @@ def test_run_pipeline_validate_on_calls_validation(mock_gen, mock_val, tmp_path)
     mock_val.assert_called_once_with("text")
 
 
-@patch("heart.core.validate_enrichment")
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.validate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_validate_flagged_appends_banner(mock_gen, mock_val, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -386,10 +386,10 @@ def test_run_pipeline_validate_flagged_appends_banner(mock_gen, mock_val, tmp_pa
     assert "Wrong mechanism stated." in content
 
 
-@patch("heart.core.validate_enrichment")
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.validate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_validate_flagged_logs_warning(mock_gen, mock_val, tmp_path, caplog):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -406,7 +406,7 @@ def test_run_pipeline_validate_flagged_logs_warning(mock_gen, mock_val, tmp_path
     def fake_parse(content, file_path):
         return [ParsedQuestion(question="Q?", correct_answer="A", answer_list="", explanation="E")]
 
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         run_pipeline(fake_parse, "prompt", input_file, tmp_path / "out", validate=True)
 
     warning_records = [r for r in caplog.records if "flagged by validator" in r.message]
@@ -416,9 +416,9 @@ def test_run_pipeline_validate_flagged_logs_warning(mock_gen, mock_val, tmp_path
 
 # --- generate_cloze / format=cloze / format=choices-front tests ---
 
-@patch("heart.core.OpenAI")
+@patch("cast.core.OpenAI")
 def test_generate_cloze_returns_result_and_usage(mock_openai_cls):
-    from heart.core import generate_cloze
+    from cast.core import generate_cloze
 
     mock_cloze = ClozeResult(cloze_stem="Patient presents with {{c1::hypertension}}.")
     mock_response = MagicMock()
@@ -439,10 +439,10 @@ def test_generate_cloze_returns_result_and_usage(mock_openai_cls):
     assert usage.output_tokens == 15
 
 
-@patch("heart.core.generate_cloze")
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.generate_cloze")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_format_cloze_calls_generate_cloze(mock_gen, mock_cloze_gen, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -461,10 +461,10 @@ def test_run_pipeline_format_cloze_calls_generate_cloze(mock_gen, mock_cloze_gen
     mock_cloze_gen.assert_called_once_with("Q?", "A")
 
 
-@patch("heart.core.generate_cloze")
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.generate_cloze")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_format_cloze_output_uses_cloze_stem(mock_gen, mock_cloze_gen, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -489,9 +489,9 @@ def test_run_pipeline_format_cloze_output_uses_cloze_stem(mock_gen, mock_cloze_g
     assert "{{c1::hypertension}}" in front
 
 
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_format_choices_front_puts_answer_list_on_front(mock_gen, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -512,9 +512,9 @@ def test_run_pipeline_format_choices_front_puts_answer_list_on_front(mock_gen, t
     assert "CHOICES" in front
 
 
-@patch("heart.core.generate_enrichment")
+@patch("cast.core.generate_enrichment")
 def test_run_pipeline_format_choices_front_drops_answer_list_from_back(mock_gen, tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     mock_result = EnrichmentResult(
         enrichment_markdown="text", tags=["a", "b", "c", "d", "e", "f"], confidence=0.9
@@ -566,7 +566,7 @@ def test_heart_parse_error_is_heart_error():
 
 
 def test_run_pipeline_raises_on_missing_api_key(tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     input_file = tmp_path / "input.html"
     input_file.write_text("<html></html>", encoding="utf-8")
@@ -577,7 +577,7 @@ def test_run_pipeline_raises_on_missing_api_key(tmp_path):
 
 
 def test_run_pipeline_raises_on_missing_input_path(tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
         with pytest.raises(HeartUserError, match="not found"):
@@ -590,7 +590,7 @@ def test_run_pipeline_raises_on_missing_input_path(tmp_path):
 
 
 def test_run_pipeline_raises_on_empty_html_directory(tmp_path):
-    from heart.core import run_pipeline
+    from cast.core import run_pipeline
 
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
@@ -604,7 +604,7 @@ def test_run_pipeline_raises_on_empty_html_directory(tmp_path):
 
 
 def test_default_anki_media_path_macos():
-    with patch("heart.core.sys") as mock_sys:
+    with patch("cast.core.sys") as mock_sys:
         mock_sys.platform = "darwin"
         path = _default_anki_media_path()
     assert "Library" in str(path)
@@ -613,7 +613,7 @@ def test_default_anki_media_path_macos():
 
 
 def test_default_anki_media_path_windows():
-    with patch("heart.core.sys") as mock_sys, \
+    with patch("cast.core.sys") as mock_sys, \
          patch.dict("os.environ", {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"}):
         mock_sys.platform = "win32"
         path = _default_anki_media_path()
@@ -622,7 +622,7 @@ def test_default_anki_media_path_windows():
 
 
 def test_default_anki_media_path_linux():
-    with patch("heart.core.sys") as mock_sys:
+    with patch("cast.core.sys") as mock_sys:
         mock_sys.platform = "linux"
         path = _default_anki_media_path()
     assert ".local" in str(path)

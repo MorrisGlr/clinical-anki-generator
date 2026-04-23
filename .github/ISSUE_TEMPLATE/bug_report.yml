@@ -30,10 +30,10 @@ body:
       required: true
 
   - type: input
-    id: heart-version
+    id: cast-version
     attributes:
-      label: HEART version
-      description: Run `pip show heart` to find the installed version
+      label: CAST version
+      description: Run `pip show cast` to find the installed version
       placeholder: "e.g. 0.1.0"
     validations:
       required: true
@@ -50,11 +50,11 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: Include the exact `heart` command you ran
+      description: Include the exact `cast` command you ran
       placeholder: |
         1. Saved HTML from UWorld question page using cmd+s
         2. Placed file in html_dump/
-        3. Ran: heart --platform uworld --tags
+        3. Ran: cast --platform uworld --tags
         4. Saw error: ...
     validations:
       required: true

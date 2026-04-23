@@ -1,9 +1,9 @@
-"""Tests for the NBME text-file parser (heart/parsers/nbme.py)."""
+"""Tests for the NBME text-file parser (cast/parsers/nbme.py)."""
 import logging
 from pathlib import Path
 
-from heart.core import format_for_anki
-from heart.parsers.nbme import parse
+from cast.core import format_for_anki
+from cast.parsers.nbme import parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nbme_sample.txt"
 TEXT_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
@@ -94,14 +94,14 @@ ALT_CONTENT = ALT_FIXTURE.read_text(encoding="utf-8")
 
 
 def test_alt_fixture_uppercase_choices_parsed(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         results = parse(ALT_CONTENT, str(ALT_FIXTURE))
     assert len(results) == 2
     assert "Peripheral neuropathy" in results[0].correct_answer or results[0].correct_answer
 
 
 def test_alt_fixture_answers_header_fallback(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         results = parse(ALT_CONTENT, str(ALT_FIXTURE))
     assert len(results) == 2
     assert "Fallback pattern matched" in caplog.text

@@ -67,7 +67,7 @@ def _check_command() -> int:
                 "Check that you have write permissions in this folder",
             )
     else:
-        test_file = output_dir / ".heartcheck"
+        test_file = output_dir / ".castcheck"
         try:
             test_file.touch()
             test_file.unlink()
@@ -82,8 +82,8 @@ def _check_command() -> int:
 
 
 def _serve_command(argv: list[str]) -> None:
-    """Launch the HEART local web UI."""
-    parser = argparse.ArgumentParser(prog="heart serve", description="Launch the HEART web UI.")
+    """Launch the CAST local web UI."""
+    parser = argparse.ArgumentParser(prog="cast serve", description="Launch the CAST web UI.")
     parser.add_argument(
         "--port",
         type=int,
@@ -92,11 +92,11 @@ def _serve_command(argv: list[str]) -> None:
     )
     args = parser.parse_args(argv)
 
-    from heart.server.app import create_app
+    from cast.server.app import create_app
 
     app = create_app()
     url = f"http://localhost:{args.port}"
-    print(f"Starting HEART web UI at {url}")
+    print(f"Starting CAST web UI at {url}")
     print("Press Ctrl+C to stop.")
     webbrowser.open(url)
     app.run(port=args.port, debug=False, use_reloader=False)
@@ -111,7 +111,7 @@ def main(argv=None):
         _serve_command(argv[1:])
 
     parser = argparse.ArgumentParser(
-        prog="heart",
+        prog="cast",
         description="Convert question bank HTML/text files to Anki flashcards.",
     )
     parser.add_argument(
@@ -134,7 +134,7 @@ def main(argv=None):
         default=Path("./gen_anki"),
         help="Output directory for Anki flashcard files (default: ./gen_anki)",
     )
-    from heart.core import _default_anki_media_path
+    from cast.core import _default_anki_media_path
 
     parser.add_argument(
         "--anki-media",
@@ -190,15 +190,15 @@ def main(argv=None):
             "\nTo fix this:\n"
             "  1. Follow the API key setup guide in SETUP.md\n"
             "  2. Re-run: ./setup.sh\n"
-            "  3. Verify with: heart check\n",
+            "  3. Verify with: cast check\n",
             file=sys.stderr,
         )
         sys.exit(1)
 
     input_path = args.input or Path("./html_dump")
 
-    from heart.core import HeartError, run_pipeline
-    from heart.parsers import get_parser
+    from cast.core import HeartError, run_pipeline
+    from cast.parsers import get_parser
 
     try:
         parse_fn, system_prompt = get_parser(args.platform)

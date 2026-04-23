@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup.sh — HEART first-time setup for macOS and Linux (Ubuntu 22.04+)
+# setup.sh — CAST first-time setup for macOS and Linux (Ubuntu 22.04+)
 # Run from the project root: ./setup.sh
 
 set -euo pipefail
@@ -16,7 +16,7 @@ info() { echo -e "  ${YELLOW}→${RESET}  $*"; }
 hr()   { echo "──────────────────────────────────────────"; }
 
 echo ""
-echo -e "${BOLD}HEART Setup${RESET}"
+echo -e "${BOLD}CAST Setup${RESET}"
 hr
 
 # ── 1. Platform check ─────────────────────────────────────────────────────────
@@ -95,10 +95,10 @@ fi
 source .venv/bin/activate
 ok "Virtual environment activated"
 
-# ── 4. Install HEART ──────────────────────────────────────────────────────────
-info "Installing HEART and dependencies (this may take a minute) ..."
+# ── 4. Install CAST ──────────────────────────────────────────────────────────
+info "Installing CAST and dependencies (this may take a minute) ..."
 pip install --quiet -e .
-ok "HEART installed"
+ok "CAST installed"
 
 # ── 5. OpenAI API key ─────────────────────────────────────────────────────────
 hr
@@ -142,10 +142,10 @@ fi
 hr
 echo ""
 info "Verifying installation ..."
-if heart --help &>/dev/null; then
-    ok "heart CLI is working"
+if cast --help &>/dev/null; then
+    ok "cast CLI is working"
 else
-    fail "heart --help failed. Try running: pip install -e ."
+    fail "cast --help failed. Try running: pip install -e ."
     exit 1
 fi
 
@@ -161,10 +161,10 @@ echo "  1. Activate your environment before each session:"
 echo "        source .venv/bin/activate"
 echo ""
 echo "  2. Verify everything is ready:"
-echo "        heart check"
+echo "        cast check"
 echo ""
 echo "  3. Place your saved HTML files in the html_dump/ folder, then run:"
-echo "        heart --platform uworld"
+echo "        cast --platform uworld"
 echo ""
 echo "  For full instructions, see SETUP.md"
 echo ""

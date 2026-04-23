@@ -1,9 +1,9 @@
-"""Tests for the UWorld HTML parser (heart/parsers/uworld.py)."""
+"""Tests for the UWorld HTML parser (cast/parsers/uworld.py)."""
 import logging
 from pathlib import Path
 
-from heart.core import format_for_anki
-from heart.parsers.uworld import parse
+from cast.core import format_for_anki
+from cast.parsers.uworld import parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "uworld_sample.html"
 HTML_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
@@ -96,7 +96,7 @@ FALLBACK_HTML = FALLBACK_FIXTURE.read_text(encoding="utf-8")
 
 
 def test_fallback_fixture_correct_answer_extracted(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         results = parse(FALLBACK_HTML, str(FALLBACK_FIXTURE))
     assert len(results) == 1
     pq = results[0]

@@ -1,9 +1,9 @@
-"""Tests for the AMBOSS HTML parser (heart/parsers/amboss.py)."""
+"""Tests for the AMBOSS HTML parser (cast/parsers/amboss.py)."""
 import logging
 from pathlib import Path
 
-from heart.core import format_for_anki
-from heart.parsers.amboss import parse
+from cast.core import format_for_anki
+from cast.parsers.amboss import parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "amboss_sample.html"
 HTML_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
@@ -78,7 +78,7 @@ FALLBACK_HTML = FALLBACK_FIXTURE.read_text(encoding="utf-8")
 
 
 def test_fallback_fixture_explanation_extracted_via_semantic_class(caplog):
-    with caplog.at_level(logging.WARNING, logger="heart.core"):
+    with caplog.at_level(logging.WARNING, logger="cast.core"):
         results = parse(FALLBACK_HTML, str(FALLBACK_FIXTURE))
     assert len(results) == 1
     pq = results[0]

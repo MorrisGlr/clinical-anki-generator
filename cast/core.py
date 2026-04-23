@@ -61,7 +61,7 @@ _VALIDATION_SYSTEM_PROMPT = (
 
 
 class HeartError(Exception):
-    """Base class for all HEART user-facing errors."""
+    """Base class for all CAST user-facing errors."""
 
     def __init__(self, user_message: str, advice: str = "") -> None:
         super().__init__(user_message)
@@ -235,7 +235,7 @@ def generate_enrichment(
         except Exception as exc:
             raise HeartAPIError(
                 "Could not reach the OpenAI API.",
-                "Check your internet connection and that your API key is valid. Run 'heart check' to verify.",
+                "Check your internet connection and that your API key is valid. Run 'cast check' to verify.",
             ) from exc
     finally:
         stop_event.set()
@@ -272,7 +272,7 @@ def validate_enrichment(enrichment_markdown: str) -> tuple[ValidationResult, Car
     except Exception as exc:
         raise HeartAPIError(
             "Could not reach the OpenAI API.",
-            "Check your internet connection and that your API key is valid. Run 'heart check' to verify.",
+            "Check your internet connection and that your API key is valid. Run 'cast check' to verify.",
         ) from exc
     usage_obj = response.usage
     details = getattr(usage_obj, "prompt_tokens_details", None)
@@ -303,7 +303,7 @@ def generate_cloze(question_stem: str, correct_answer: str) -> tuple[ClozeResult
     except Exception as exc:
         raise HeartAPIError(
             "Could not reach the OpenAI API.",
-            "Check your internet connection and that your API key is valid. Run 'heart check' to verify.",
+            "Check your internet connection and that your API key is valid. Run 'cast check' to verify.",
         ) from exc
     usage_obj = response.usage
     details = getattr(usage_obj, "prompt_tokens_details", None)
@@ -343,7 +343,7 @@ _VALIDATION_BANNER = (
 
 
 class _ProgressWarningHandler(logging.Handler):
-    """Forwards WARNING log records from the 'heart' logger to the SSE progress callback."""
+    """Forwards WARNING log records from the 'cast' logger to the SSE progress callback."""
 
     def __init__(self, callback: Callable[[str], None]) -> None:
         super().__init__(level=logging.WARNING)
@@ -417,7 +417,7 @@ def run_pipeline(
     _warning_handler: _ProgressWarningHandler | None = None
     if progress_callback:
         _warning_handler = _ProgressWarningHandler(progress_callback)
-        logging.getLogger("heart").addHandler(_warning_handler)
+        logging.getLogger("cast").addHandler(_warning_handler)
 
     card_num = 0
     skipped = 0
@@ -539,7 +539,7 @@ def run_pipeline(
         raise
     finally:
         if _warning_handler:
-            logging.getLogger("heart").removeHandler(_warning_handler)
+            logging.getLogger("cast").removeHandler(_warning_handler)
 
     total_cost = (
         total_input * _INPUT_COST_PER_1K_TOKENS
