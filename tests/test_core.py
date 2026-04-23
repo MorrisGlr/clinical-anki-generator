@@ -632,7 +632,7 @@ def test_default_anki_media_path_linux():
 
 def test_default_anki_media_path_no_home():
     """Returns None when Path.home() raises RuntimeError (e.g. stripped CI env)."""
-    with patch("cast.core.Path") as mock_path_cls:
-        mock_path_cls.home.side_effect = RuntimeError("Could not determine home directory.")
+    with patch("cast.core.Path.home", side_effect=RuntimeError("Could not determine home directory.")), \
+         patch.dict("os.environ", {}, clear=True):
         path = _default_anki_media_path()
     assert path is None
