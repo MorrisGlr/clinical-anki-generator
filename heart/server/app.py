@@ -12,6 +12,7 @@ from dotenv import load_dotenv, set_key
 from flask import (
     Flask,
     Response,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -19,10 +20,20 @@ from flask import (
     url_for,
 )
 
+from heart.core import copy_media  # noqa: E402
+
 load_dotenv()
 
 # In-memory run state. Keyed by run_id (timestamp string).
-# Value: {"queue": Queue, "output_path": Path, "status": "running"|"done"|"error"}
+# Value: {
+#   "queue": Queue,
+#   "output_path": Path,
+#   "status": "running"|"done"|"error",
+#   "platform": str,
+#   "anki_media_path": str | None,
+#   "cards": list[dict],   # accumulated card_done payloads for preview
+#   "summary": dict | None,
+# }
 _RUNS: dict[str, dict] = {}
 
 _SENTINEL = None  # put into queue to signal SSE stream to close
@@ -85,7 +96,42 @@ def create_app(output_dir: Path | None = None) -> Flask:
         output_file_path = output_dir / f"{run_id}.txt"
 
         q: Queue = Queue()
-        _RUNS[run_id] = {"queue": q, "output_path": output_file_path, "status": "running"}
+        _RUNS[run_id] = {
+            "queue": q,
+            "output_path": output_file_path,
+            "status": "running",
+            "platform": platform,
+            "anki_media_path": anki_media,
+            "cards": [],
+            "summary": None,
+        }
+
+        def _intercept(msg: str) -> None:
+            """Forward to SSE queue and capture card data for the preview page."""
+            try:
+                event = json.loads(msg)
+            except (json.JSONDecodeError, TypeError):
+                q.put(msg)
+                return
+
+            if event.get("type") == "card_done":
+                _RUNS[run_id]["cards"].append({
+                    "n": event["n"],
+                    "front": event.get("front", ""),
+                    "back": event.get("back", ""),
+                    "flagged": event.get("flagged", False),
+                    "cost_usd": event.get("cost_usd", 0.0),
+                })
+            elif event.get("type") == "done":
+                _RUNS[run_id]["summary"] = {
+                    "total": event.get("total", 0),
+                    "skipped": event.get("skipped", 0),
+                    "cost_usd": event.get("cost_usd", 0.0),
+                }
+
+            # Strip front/back from SSE payload to keep SSE messages small
+            sse_event = {k: v for k, v in event.items() if k not in ("front", "back")}
+            q.put(json.dumps(sse_event))
 
         def _worker():
             try:
@@ -102,7 +148,7 @@ def create_app(output_dir: Path | None = None) -> Flask:
                     tags=tags,
                     validate=validate,
                     format=fmt,
-                    progress_callback=q.put,
+                    progress_callback=_intercept,
                     output_file_path=output_file_path,
                 )
                 _RUNS[run_id]["status"] = "done"
@@ -142,6 +188,52 @@ def create_app(output_dir: Path | None = None) -> Flask:
             mimetype="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
+
+    @app.route("/results/<run_id>")
+    def results(run_id):
+        run = _RUNS.get(run_id)
+        if not run:
+            return redirect(url_for("index"))
+        return render_template(
+            "results.html",
+            run_id=run_id,
+            cards=run["cards"],
+            summary=run.get("summary") or {},
+            platform=run["platform"],
+        )
+
+    @app.route("/copy-media/<run_id>", methods=["POST"])
+    def copy_media_route(run_id):
+        run = _RUNS.get(run_id)
+        if not run:
+            return jsonify({"error": "Run not found."}), 404
+
+        anki_media_path = run.get("anki_media_path")
+        if not anki_media_path:
+            # Use the default macOS path if not overridden
+            anki_media_path = str(
+                Path.home() / "Library/Application Support/Anki2/User 1/collection.media"
+            )
+
+        # Collect image paths from all stored cards (cards don't store image_paths,
+        # so we re-derive them from the output directory companion folder)
+        output_path = run.get("output_path")
+        if not output_path or not Path(anki_media_path).exists():
+            return jsonify({"error": "Anki media folder not found.", "path": anki_media_path}), 400
+
+        # Scan for *_files/ directories adjacent to the output file
+        # (images were already copied to collection.media during the run if anki_media_path
+        # was set; this endpoint is for cases where it wasn't set or needs to be re-run)
+        image_paths: list[str] = []
+        output_dir = output_path.parent
+        for files_dir in output_dir.glob("*_files"):
+            if files_dir.is_dir():
+                for img in files_dir.iterdir():
+                    if img.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif"}:
+                        image_paths.append(str(img))
+
+        copied = copy_media(image_paths, anki_media_path)
+        return jsonify({"copied": len(copied), "files": copied})
 
     @app.route("/download/<run_id>")
     def download(run_id):

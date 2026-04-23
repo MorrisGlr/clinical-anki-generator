@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}HEART — Card Preview{% endblock %}
+{% block content %}
+
+{# ── Summary bar ──────────────────────────────────────────────────────────── #}
+<div class="card results-summary">
+  <h1>Card Preview</h1>
+  <p class="subtitle">Review your cards before importing into Anki. All content is rendered exactly as it will appear on the back of each card.</p>
+
+  <div class="summary-grid">
+    <div class="summary-item">
+      <span class="summary-num">{{ summary.get('total', cards|length) }}</span>
+      <span class="summary-label">Cards generated</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-num">{{ summary.get('skipped', 0) }}</span>
+      <span class="summary-label">Skipped</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-num">${{ "%.4f"|format(summary.get('cost_usd', 0)) }}</span>
+      <span class="summary-label">Estimated cost</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-num">{{ run_id[:10] }}</span>
+      <span class="summary-label">Date</span>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-top: 20px;">
+    <a href="/download/{{ run_id }}" class="btn-primary">Download .txt file</a>
+    {% if platform == "uworld" %}
+    <button id="copy-media-btn" class="btn-secondary" onclick="copyMedia()">Copy images to Anki</button>
+    {% endif %}
+  </div>
+  {% if platform == "uworld" %}<div id="copy-media-msg" class="copy-msg hidden"></div>{% endif %}
+  <a href="/" class="btn-secondary" style="margin-top: 8px;">Generate more cards</a>
+</div>
+
+{# ── Flagged cards notice ─────────────────────────────────────────────────── #}
+{% set flagged_count = cards | selectattr('flagged') | list | length %}
+{% if flagged_count > 0 %}
+<div class="alert alert-warning" style="max-width: 640px; margin: 0 auto 16px;">
+  <strong>&#9888; {{ flagged_count }} card{{ 's' if flagged_count != 1 }} flagged for review.</strong>
+  The validator found potential accuracy concerns. Review these cards carefully before importing.
+</div>
+{% endif %}
+
+{# ── Card list ────────────────────────────────────────────────────────────── #}
+{% if cards %}
+  {% for card in cards %}
+  <div class="card preview-card{% if card.flagged %} preview-card--flagged{% endif %}" id="card-{{ card.n }}">
+    <div class="preview-card-header">
+      <span class="card-num">Card {{ card.n }}</span>
+      {% if card.flagged %}
+      <span class="flagged-badge">&#9888; Flagged for review</span>
+      {% endif %}
+      <span class="card-cost">${{ "%.4f"|format(card.cost_usd) }}</span>
+    </div>
+
+    <div class="preview-side preview-side--front">
+      <div class="side-label">Front</div>
+      <div class="side-content">{{ card.front | safe }}</div>
+    </div>
+
+    <div class="preview-side preview-side--back">
+      <div class="side-label">Back</div>
+      <div class="side-content">{{ card.back | safe }}</div>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card" style="max-width: 640px; margin: 0 auto; text-align: center; color: var(--text-muted);">
+    No card data available for preview. The .txt output file is still available for download.
+  </div>
+{% endif %}
+
+<div style="text-align: center; margin: 24px 0;">
+  <a href="#" class="back-to-top">&#8593; Back to top</a>
+</div>
+
+{% if platform == "uworld" %}
+<script>
+  async function copyMedia() {
+    const btn = document.getElementById("copy-media-btn");
+    const msg = document.getElementById("copy-media-msg");
+    btn.disabled = true;
+    btn.textContent = "Copying…";
+    try {
+      const resp = await fetch("/copy-media/{{ run_id }}", { method: "POST" });
+      const data = await resp.json();
+      if (resp.ok) {
+        btn.textContent = "Copied ✓";
+        msg.textContent = data.copied + " image" + (data.copied !== 1 ? "s" : "") + " copied to Anki media folder.";
+        msg.className = "copy-msg copy-msg--ok";
+      } else {
+        btn.textContent = "Copy images to Anki";
+        btn.disabled = false;
+        msg.textContent = data.error || "Copy failed.";
+        msg.className = "copy-msg copy-msg--error";
+      }
+    } catch (e) {
+      btn.textContent = "Copy images to Anki";
+      btn.disabled = false;
+      msg.textContent = "Request failed. Is the server still running?";
+      msg.className = "copy-msg copy-msg--error";
+    }
+  }
+</script>
+{% endif %}
+{% endblock %}

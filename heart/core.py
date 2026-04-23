@@ -442,6 +442,8 @@ def run_pipeline(
                         "n": card_num,
                         "cost_usd": round(usage.cost_usd, 4),
                         "flagged": flagged,
+                        "front": front,
+                        "back": back,
                     })
     except Exception as exc:
         _emit({"type": "error", "message": str(exc)})

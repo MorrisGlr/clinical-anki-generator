@@ -202,6 +202,18 @@ select:focus, input:focus {
 
 .btn-secondary:hover { background: var(--border); }
 
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-row .btn-primary,
+.btn-row .btn-secondary {
+  flex: 1;
+  margin-top: 0;
+}
+
 /* ── Alerts ──────────────────────────────────────────────────────────────── */
 .alert {
   border-radius: 6px;
@@ -297,6 +309,114 @@ select:focus, input:focus {
   text-transform: uppercase;
   letter-spacing: .5px;
 }
+
+/* ── Results page ────────────────────────────────────────────────────────── */
+.results-summary {
+  max-width: 640px;
+  margin: 0 auto 24px;
+}
+
+.alert-warning {
+  background: #fff8e6;
+  border: 1px solid #d1ae3e;
+  border-left: 3px solid #d1ae3e;
+  color: var(--warning);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Card preview panels */
+.preview-card {
+  max-width: 640px;
+  margin: 0 auto 20px;
+  padding: 20px 24px;
+}
+
+.preview-card--flagged {
+  border-left: 4px solid #d1ae3e;
+}
+
+.preview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.card-num {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.flagged-badge {
+  background: #fff3cd;
+  color: var(--warning);
+  border: 1px solid #d1ae3e;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.card-cost {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Front / back side panels */
+.preview-side {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.side-label {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--text-muted);
+}
+
+.preview-side--back .side-label {
+  background: #f0f6ff;
+  color: var(--accent);
+}
+
+.side-content {
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* Copy media feedback */
+.copy-msg {
+  font-size: 13px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.copy-msg--ok    { color: var(--success); background: #e6f4ea; }
+.copy-msg--error { color: var(--danger);  background: #fff0ee; }
+
+.back-to-top {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.back-to-top:hover { text-decoration: underline; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 footer {
