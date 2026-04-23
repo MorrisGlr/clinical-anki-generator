@@ -109,6 +109,7 @@ def main(argv=None):
         sys.exit(_check_command())
     if argv and argv[0] == "serve":
         _serve_command(argv[1:])
+        return
 
     parser = argparse.ArgumentParser(
         prog="cast",
@@ -181,11 +182,6 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    # Resolve --anki-media default lazily so parser construction never calls Path.home().
-    if args.anki_media is None:
-        from cast.core import _default_anki_media_path
-        args.anki_media = _default_anki_media_path()
-
     # API key guard — check before importing openai or calling the pipeline.
     if not os.environ.get("OPENAI_API_KEY"):
         print(
@@ -197,6 +193,12 @@ def main(argv=None):
             file=sys.stderr,
         )
         sys.exit(1)
+
+    # Resolve --anki-media default lazily, after the API key check, so importing
+    # cast.core here does not trigger load_dotenv() before the guard above.
+    if args.anki_media is None:
+        from cast.core import _default_anki_media_path
+        args.anki_media = _default_anki_media_path()
 
     input_path = args.input or Path("./html_dump")
 
@@ -234,5 +236,5 @@ def main(argv=None):
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
