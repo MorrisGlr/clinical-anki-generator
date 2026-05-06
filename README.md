@@ -19,26 +19,16 @@
 
 ---
 
-## Quick Start (Recommended)
+## Get CAST
 
-**New to the command line?** Follow the step-by-step guide in [SETUP.md](SETUP.md). It covers downloading CAST, getting an OpenAI API key, and running the setup script — no prior terminal experience needed.
+**Download the app — macOS, no terminal required** *(recommended)*<br>
+Download `CAST-macOS.dmg` from the [Releases page](https://github.com/MorrisGlr/clinical-anki-generator/releases), drag **CAST.app** into Applications, and follow the [app setup guide](SETUP.md#option-1--download-the-app-no-terminal-required). No Python, no pip, no command line.
 
-After setup, verify everything works with:
-
-```bash
-cast check
-```
-
-Then drop your saved HTML files into `html_dump/` and run:
-
-```bash
-cast --platform uworld --tags
-```
-
-Import the generated file from `gen_anki/` into Anki using File > Import.
+**Install via terminal — macOS, Windows, Linux**<br>
+Follow the [terminal setup guide](SETUP.md#option-2--command-line-setup-terminal-install) for a step-by-step walkthrough, or expand below if you prefer to install manually.
 
 <details>
-<summary>Developer Setup (manual install)</summary>
+<summary>Developer / manual install</summary>
 
 ```bash
 # 1. Clone and install
@@ -48,7 +38,10 @@ pip install -e .
 # 2. Add your OpenAI API key
 echo "OPENAI_API_KEY=sk-your-key-here" > .env
 
-# 3. Drop saved HTML files into html_dump/ and run
+# 3. Verify setup
+cast check
+
+# 4. Drop saved HTML files into html_dump/ and run
 cast --platform uworld --tags
 ```
 
@@ -97,11 +90,7 @@ flowchart LR
     D --> E["5. Export\ngen_anki/"]
 ```
 
-1. Open a UWorld question in your browser and save the page (`cmd+s` on macOS, `ctrl+s` on Windows). Drop the saved HTML file into the `html_dump/` directory.
-2. Run `cast --platform uworld`. CAST reads all HTML files in `html_dump/` and extracts the question stem, answer choices, correct answer, and official explanation using BeautifulSoup4.
-3. Each question is sent to the OpenAI API, which returns clinical reasoning enrichment as structured JSON (vignette analysis, distractor logic, pathophysiology, tags, confidence).
-4. CAST assembles the card: question on the front, original explanation plus enriched content on the back, rendered as Anki-compatible HTML.
-5. A single tab-separated import file is written to `gen_anki/`. Import it into Anki via File > Import. Images from `*_files/` companion directories are copied to Anki's media folder automatically.
+CAST parses the saved HTML, sends each question to the OpenAI API for clinical reasoning enrichment (vignette analysis, distractor logic, pathophysiology, tags), and assembles the output as Anki-importable tab-separated text. You can run CAST via the desktop app or the `cast` CLI — both use the same pipeline.
 
 ---
 
