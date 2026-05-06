@@ -1,10 +1,59 @@
 # Setting Up CAST
 
-This guide is written for medical students, residents, and physicians who have not set up a command-line tool before. Follow the section for your operating system.
+This guide is written for medical students, residents, and physicians. Follow the section that matches how you want to install CAST.
 
 **What you will need:**
 - An internet connection
 - An OpenAI account (free to create; charges apply based on usage — typically $0.01–$0.10 per batch of cards)
+
+---
+
+## Option 1 — Download the app (no terminal required)
+
+> **Recommended for most users.** No Python, no pip, no command line.
+
+**Time:** approximately 5 minutes.
+
+### Step 1 — Download
+
+Go to the [CAST Releases page](https://github.com/MorrisGlr/clinical-anki-generator/releases) and download the latest **CAST-macOS.dmg** file.
+
+### Step 2 — Install
+
+1. Open the downloaded `.dmg` file (double-click it in your Downloads folder).
+2. Drag **CAST.app** into your **Applications** folder.
+3. Eject the disk image.
+
+### Step 3 — First launch (Gatekeeper notice)
+
+Because CAST is not code-signed through Apple's paid developer program, macOS will block it on the first launch.
+
+**To open it anyway:**
+1. In Finder, go to your **Applications** folder.
+2. **Right-click** (or Control-click) **CAST.app**.
+3. Choose **Open** from the menu.
+4. Click **Open** in the dialog that appears.
+
+You only need to do this once. After that, CAST opens normally by double-clicking.
+
+### Step 4 — Set your OpenAI API key
+
+On first launch, CAST will open your browser and show a setup page. Paste your OpenAI API key there and click **Save**. CAST stores the key in `~/Documents/CAST/.env` — it never leaves your machine.
+
+If you don't have an API key yet, follow the [Get your OpenAI API key](#get-your-openai-api-key) instructions below, then return here.
+
+### Step 5 — Use CAST
+
+1. CAST stores your input files in `~/Documents/CAST/html_dump/` and writes output to `~/Documents/CAST/gen_anki/`.
+2. Save a UWorld (or AMBOSS/APGO) question page from your browser and move the saved HTML file into `~/Documents/CAST/html_dump/`.
+3. In the CAST browser window, choose your platform and click **Generate cards**.
+4. When the run finishes, click **Download .txt** and import the file into Anki via **File → Import**.
+
+---
+
+## Option 2 — Command-line setup (terminal install)
+
+Use this path if you prefer the terminal or need the `cast` CLI for scripting.
 
 **Time:** approximately 10 minutes on first setup.
 

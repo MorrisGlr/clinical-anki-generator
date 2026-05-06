@@ -17,7 +17,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel
 
-load_dotenv()
+_data_dir = os.environ.get("CAST_DATA_DIR")
+load_dotenv(dotenv_path=Path(_data_dir) / ".env" if _data_dir else None)
 
 logger = logging.getLogger(__name__)
 

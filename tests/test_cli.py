@@ -12,25 +12,13 @@ from cast.cli import _check_command, _serve_command, main
 
 
 def test_check_all_pass(tmp_path, capsys):
-    html_dump = tmp_path / "html_dump"
-    html_dump.mkdir()
-    gen_anki = tmp_path / "gen_anki"
-    gen_anki.mkdir()
+    (tmp_path / "html_dump").mkdir()
+    (tmp_path / "gen_anki").mkdir()
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=tmp_path),
     ):
-        # Map Path("./html_dump") and Path("./gen_anki") to tmp_path subdirs
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                return gen_anki
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
-
         result = _check_command()
 
     assert result == 0
@@ -40,22 +28,13 @@ def test_check_all_pass(tmp_path, capsys):
 
 
 def test_check_missing_api_key(tmp_path, capsys):
-    html_dump = tmp_path / "html_dump"
-    html_dump.mkdir()
+    (tmp_path / "html_dump").mkdir()
+    (tmp_path / "gen_anki").mkdir()
 
     with (
         patch.dict("os.environ", {}, clear=True),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=tmp_path),
     ):
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                return tmp_path / "gen_anki"
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
-
         result = _check_command()
 
     assert result == 1
@@ -65,21 +44,13 @@ def test_check_missing_api_key(tmp_path, capsys):
 
 
 def test_check_missing_input_dir(tmp_path, capsys):
+    # html_dump intentionally not created; gen_anki exists
+    (tmp_path / "gen_anki").mkdir()
+
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=tmp_path),
     ):
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return tmp_path / "html_dump"  # does not exist
-            if arg == "./gen_anki":
-                gen = tmp_path / "gen_anki"
-                gen.mkdir()
-                return gen
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
-
         result = _check_command()
 
     assert result == 1
@@ -89,27 +60,17 @@ def test_check_missing_input_dir(tmp_path, capsys):
 
 
 def test_check_creates_missing_output_dir(tmp_path, capsys):
-    html_dump = tmp_path / "html_dump"
-    html_dump.mkdir()
-    gen_anki = tmp_path / "gen_anki"  # does not exist yet
+    (tmp_path / "html_dump").mkdir()
+    # gen_anki intentionally not created
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=tmp_path),
     ):
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                return gen_anki
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
-
         result = _check_command()
 
     assert result == 0
-    assert gen_anki.exists()
+    assert (tmp_path / "gen_anki").exists()
     captured = capsys.readouterr()
     assert "created" in captured.out
 
@@ -168,24 +129,13 @@ def test_no_quiet_shows_traceback_on_heart_error(capsys, tmp_path):
 
 def test_check_subcommand_dispatched(capsys, tmp_path):
     """cast check exits with 0/1, not argparse error about --platform."""
-    html_dump = tmp_path / "html_dump"
-    html_dump.mkdir()
+    (tmp_path / "html_dump").mkdir()
+    (tmp_path / "gen_anki").mkdir()
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=tmp_path),
     ):
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                gen = tmp_path / "gen_anki"
-                gen.mkdir(exist_ok=True)
-                return gen
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
-
         with pytest.raises(SystemExit) as exc_info:
             main(["check"])
 
@@ -198,26 +148,15 @@ def test_check_subcommand_dispatched(capsys, tmp_path):
 
 def test_check_python_version_too_old(tmp_path, capsys):
     """_check_command() reports failure when Python < 3.10."""
-    html_dump = tmp_path / "html_dump"
-    html_dump.mkdir()
+    (tmp_path / "html_dump").mkdir()
+    (tmp_path / "gen_anki").mkdir()
 
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=tmp_path),
         patch("cast.cli.sys") as mock_sys,
     ):
         mock_sys.version_info = (3, 9, 0)
-
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                gen = tmp_path / "gen_anki"
-                gen.mkdir(exist_ok=True)
-                return gen
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
         result = _check_command()
 
     assert result == 1
@@ -234,18 +173,15 @@ def test_check_output_dir_creation_fails(tmp_path, capsys):
     mock_gen_anki.exists.return_value = False
     mock_gen_anki.mkdir.side_effect = OSError("Permission denied")
 
+    mock_data_dir = MagicMock()
+    mock_data_dir.__truediv__ = MagicMock(
+        side_effect=lambda name: html_dump if name == "html_dump" else mock_gen_anki
+    )
+
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=mock_data_dir),
     ):
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                return mock_gen_anki
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
         result = _check_command()
 
     assert result == 1
@@ -265,18 +201,15 @@ def test_check_output_dir_not_writable(tmp_path, capsys):
     mock_gen_anki.exists.return_value = True
     mock_gen_anki.__truediv__ = MagicMock(return_value=mock_castcheck)
 
+    mock_data_dir = MagicMock()
+    mock_data_dir.__truediv__ = MagicMock(
+        side_effect=lambda name: html_dump if name == "html_dump" else mock_gen_anki
+    )
+
     with (
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}),
-        patch("cast.cli.Path") as mock_path_cls,
+        patch("cast.cli._cast_data_dir", return_value=mock_data_dir),
     ):
-        def path_side_effect(arg=""):
-            if arg == "./html_dump":
-                return html_dump
-            if arg == "./gen_anki":
-                return mock_gen_anki
-            return Path(arg)
-
-        mock_path_cls.side_effect = path_side_effect
         result = _check_command()
 
     assert result == 1

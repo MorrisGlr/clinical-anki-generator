@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+import sys
 import tempfile
 import threading
 from datetime import datetime
@@ -22,7 +23,8 @@ from flask import (
 
 from cast.core import _default_anki_media_path, copy_media  # noqa: E402
 
-load_dotenv()
+_data_dir = Path(os.environ["CAST_DATA_DIR"]) if os.environ.get("CAST_DATA_DIR") else None
+load_dotenv(dotenv_path=_data_dir / ".env" if _data_dir else None)
 
 # In-memory run state. Keyed by run_id (timestamp string).
 # Value: {
@@ -40,8 +42,19 @@ _SENTINEL = None  # put into queue to signal SSE stream to close
 
 
 def create_app(output_dir: Path | None = None) -> Flask:
-    app = Flask(__name__, template_folder="templates", static_folder="static")
-    app.config["OUTPUT_DIR"] = Path(output_dir) if output_dir else Path("gen_anki")
+    if getattr(sys, "frozen", False):
+        _bundle = Path(sys._MEIPASS)
+        _template_folder = str(_bundle / "cast" / "server" / "templates")
+        _static_folder = str(_bundle / "cast" / "server" / "static")
+    else:
+        _template_folder = "templates"
+        _static_folder = "static"
+
+    app = Flask(__name__, template_folder=_template_folder, static_folder=_static_folder)
+    app.config["OUTPUT_DIR"] = (
+        Path(output_dir) if output_dir
+        else (_data_dir / "gen_anki" if _data_dir else Path("gen_anki"))
+    )
 
     # ── Routes ────────────────────────────────────────────────────────────────
 
@@ -59,10 +72,10 @@ def create_app(output_dir: Path | None = None) -> Flask:
     def setup_post():
         api_key = request.form.get("api_key", "").strip()
         if api_key:
-            env_path = Path(".env")
+            env_path = (_data_dir / ".env") if _data_dir else Path(".env")
             env_path.touch(exist_ok=True)
             set_key(str(env_path), "OPENAI_API_KEY", api_key)
-            load_dotenv(override=True)
+            load_dotenv(dotenv_path=env_path, override=True)
         return redirect(url_for("index"))
 
     @app.route("/run", methods=["POST"])

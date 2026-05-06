@@ -5,6 +5,18 @@ import traceback
 import webbrowser
 from pathlib import Path
 
+
+def _cast_data_dir() -> Path:
+    """Return the CAST data directory.
+
+    When running as a frozen PyInstaller bundle, this is ~/Documents/CAST/.
+    In development, it is the current working directory.
+    """
+    data_dir = os.environ.get("CAST_DATA_DIR")
+    if data_dir:
+        return Path(data_dir)
+    return Path(".")
+
 # ANSI color codes (stdlib only; safe on macOS Terminal and iTerm2)
 _GREEN = "\033[32m"
 _RED = "\033[31m"
@@ -46,7 +58,7 @@ def _check_command() -> int:
         )
 
     # Input directory
-    input_dir = Path("./html_dump")
+    input_dir = _cast_data_dir() / "html_dump"
     if input_dir.exists():
         _ok(f"Input directory {input_dir} exists")
     else:
@@ -56,7 +68,7 @@ def _check_command() -> int:
         )
 
     # Output directory
-    output_dir = Path("./gen_anki")
+    output_dir = _cast_data_dir() / "gen_anki"
     if not output_dir.exists():
         try:
             output_dir.mkdir(parents=True)
@@ -132,8 +144,8 @@ def main(argv=None):
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("./gen_anki"),
-        help="Output directory for Anki flashcard files (default: ./gen_anki)",
+        default=None,
+        help="Output directory for Anki flashcard files (default: ~/Documents/CAST/gen_anki when packaged, ./gen_anki otherwise)",
     )
     parser.add_argument(
         "--anki-media",
@@ -200,7 +212,8 @@ def main(argv=None):
         from cast.core import _default_anki_media_path
         args.anki_media = _default_anki_media_path()
 
-    input_path = args.input or Path("./html_dump")
+    input_path = args.input or (_cast_data_dir() / "html_dump")
+    output_path = args.output or (_cast_data_dir() / "gen_anki")
 
     from cast.core import HeartError, run_pipeline
     from cast.parsers import get_parser
@@ -211,7 +224,7 @@ def main(argv=None):
             parse_fn=parse_fn,
             system_prompt=system_prompt,
             input_path=input_path,
-            output_dir=args.output,
+            output_dir=output_path,
             anki_media_path=str(args.anki_media) if args.platform == "uworld" else None,
             tags=args.tags,
             validate=args.validate,
