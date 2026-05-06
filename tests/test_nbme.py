@@ -106,3 +106,18 @@ def test_alt_fixture_answers_header_fallback(caplog):
     assert len(results) == 2
     assert "Fallback pattern matched" in caplog.text
     assert "nbme:answer_key" in caplog.text
+
+
+def test_parse_returns_empty_when_no_answer_key(capsys):
+    """When no answer key block is found, parse() warns and returns []."""
+    content = (
+        "1. A 45-year-old man presents with chest pain.\n"
+        "   A. Option A\n"
+        "   B. Option B\n"
+        "   C. Option C\n"
+        "   D. Option D\n\n"
+    )
+    results = parse(content, "no_answers.txt")
+    assert results == []
+    captured = capsys.readouterr()
+    assert "Warning" in captured.out

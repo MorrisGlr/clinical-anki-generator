@@ -1,5 +1,7 @@
 """Tests for cast/core.py helpers (excluding LLM calls)."""
+import json
 import logging
+import shutil
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,7 +19,9 @@ from cast.core import (
     ValidationResult,
     _INPUT_COST_PER_1K_TOKENS,
     _OUTPUT_COST_PER_1K_TOKENS,
+    _ProgressWarningHandler,
     _default_anki_media_path,
+    copy_media,
     format_for_anki,
     markdown_to_html,
     try_patterns,
@@ -636,3 +640,139 @@ def test_default_anki_media_path_no_home():
          patch.dict("os.environ", {}, clear=True):
         path = _default_anki_media_path()
     assert path is None
+
+
+# ---------------------------------------------------------------------------
+# copy_media
+# ---------------------------------------------------------------------------
+
+def test_copy_media_basic(tmp_path):
+    src = tmp_path / "img.png"
+    src.write_bytes(b"\x89PNG")
+    dest_dir = tmp_path / "media"
+    dest_dir.mkdir()
+
+    names = copy_media([str(src)], str(dest_dir))
+
+    assert names == ["img.png"]
+    assert (dest_dir / "img.png").exists()
+
+
+def test_copy_media_deduplication(tmp_path):
+    src = tmp_path / "img.png"
+    src.write_bytes(b"\x89PNG")
+    dest_dir = tmp_path / "media"
+    dest_dir.mkdir()
+    # Pre-create the destination so the dedup branch fires
+    (dest_dir / "img.png").write_bytes(b"existing")
+
+    names = copy_media([str(src)], str(dest_dir))
+
+    assert names == ["img1.png"]
+    assert (dest_dir / "img1.png").exists()
+
+
+# ---------------------------------------------------------------------------
+# _ProgressWarningHandler
+# ---------------------------------------------------------------------------
+
+def test_progress_warning_handler_emit():
+    received = []
+    handler = _ProgressWarningHandler(received.append)
+    logger = logging.getLogger("cast.test_pwh")
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)
+    try:
+        logger.warning("test warning message")
+    finally:
+        logger.removeHandler(handler)
+
+    assert len(received) == 1
+    payload = json.loads(received[0])
+    assert payload["type"] == "warning"
+    assert "test warning message" in payload["message"]
+
+
+# ---------------------------------------------------------------------------
+# run_pipeline — additional branches
+# ---------------------------------------------------------------------------
+
+@patch("cast.core.generate_enrichment")
+def test_run_pipeline_with_directory_input(mock_gen, tmp_path):
+    from cast.core import run_pipeline
+
+    mock_gen.return_value = (
+        EnrichmentResult(enrichment_markdown="text", tags=["a","b","c","d","e","f"], confidence=0.9),
+        CardUsage(input_tokens=10, output_tokens=5, cached_tokens=0),
+    )
+    html_dir = tmp_path / "html_dump"
+    html_dir.mkdir()
+    (html_dir / "q1.html").write_text("<html></html>", encoding="utf-8")
+    (html_dir / "q2.html").write_text("<html></html>", encoding="utf-8")
+
+    def fake_parse(content, file_path):
+        return [ParsedQuestion(question="Q?", correct_answer="A", answer_list="", explanation="")]
+
+    out = run_pipeline(fake_parse, "prompt", html_dir, tmp_path / "out")
+    assert out.exists()
+    assert mock_gen.call_count == 2
+
+
+@patch("cast.core.generate_enrichment")
+def test_run_pipeline_progress_callback(mock_gen, tmp_path):
+    from cast.core import run_pipeline
+
+    mock_gen.return_value = (
+        EnrichmentResult(enrichment_markdown="text", tags=["a","b","c","d","e","f"], confidence=0.9),
+        CardUsage(input_tokens=10, output_tokens=5, cached_tokens=0),
+    )
+    input_file = tmp_path / "input.html"
+    input_file.write_text("<html></html>", encoding="utf-8")
+
+    events = []
+
+    def fake_parse(content, file_path):
+        return [ParsedQuestion(question="Q?", correct_answer="A", answer_list="", explanation="")]
+
+    run_pipeline(fake_parse, "prompt", input_file, tmp_path / "out", progress_callback=events.append)
+
+    types = [json.loads(e)["type"] for e in events]
+    assert "card_start" in types
+    assert "card_done" in types
+
+
+@patch("cast.core.generate_enrichment")
+def test_run_pipeline_skips_empty_card(mock_gen, tmp_path):
+    from cast.core import run_pipeline
+
+    input_file = tmp_path / "input.html"
+    input_file.write_text("<html></html>", encoding="utf-8")
+    events = []
+
+    def fake_parse(content, file_path):
+        return [ParsedQuestion(question="", correct_answer="", answer_list="", explanation="")]
+
+    run_pipeline(fake_parse, "prompt", input_file, tmp_path / "out", progress_callback=events.append)
+
+    types = [json.loads(e)["type"] for e in events]
+    assert "card_skip" in types
+    mock_gen.assert_not_called()
+
+
+@patch("cast.core.generate_enrichment")
+def test_run_pipeline_exception_emits_error_event(mock_gen, tmp_path):
+    from cast.core import run_pipeline
+
+    mock_gen.side_effect = RuntimeError("boom")
+    input_file = tmp_path / "input.html"
+    input_file.write_text("<html></html>", encoding="utf-8")
+    events = []
+
+    def fake_parse(content, file_path):
+        return [ParsedQuestion(question="Q?", correct_answer="A", answer_list="", explanation="")]
+
+    with pytest.raises(RuntimeError, match="boom"):
+        run_pipeline(fake_parse, "prompt", input_file, tmp_path / "out", progress_callback=events.append)
+
+    types = [json.loads(e)["type"] for e in events]
+    assert "error" in types

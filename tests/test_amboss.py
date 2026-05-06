@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 
 from cast.core import format_for_anki
-from cast.parsers.amboss import parse
+from cast.parsers.amboss import _question_id_from_path, parse
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "amboss_sample.html"
 HTML_CONTENT = FIXTURE_PATH.read_text(encoding="utf-8")
@@ -84,3 +84,19 @@ def test_fallback_fixture_explanation_extracted_via_semantic_class(caplog):
     pq = results[0]
     assert "mononucleosis" in pq.explanation.lower() or "epstein" in pq.explanation.lower()
     assert "Fallback selector matched" in caplog.text
+
+
+def test_question_id_from_path_digit_prefix():
+    """Return value uses the numeric prefix of the filename."""
+    assert _question_id_from_path("123_amboss.html") == "FLaJnh0OIM_123"
+    assert _question_id_from_path("42_amboss.html") == "FLaJnh0OIM_42"
+    assert _question_id_from_path("7_amboss.html") == "FLaJnh0OIM_7"
+
+
+def test_parse_single_word_question_starting_with_digit(capsys):
+    """IndexError branch: question starts with a digit but has no space after it."""
+    html = '<div id="FLaJnh0OIM_1">9</div>'
+    results = parse(html, "1_test.html")
+    assert len(results) == 1
+    captured = capsys.readouterr()
+    assert "Warning" in captured.out or results[0].question == "9"

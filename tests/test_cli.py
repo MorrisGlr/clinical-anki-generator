@@ -293,3 +293,13 @@ def test_get_parser_unknown_platform():
     from cast.parsers import get_parser
     with pytest.raises(ValueError, match="Unknown platform"):
         get_parser("unknown")
+
+
+def test_cast_data_dir_reads_env_var(tmp_path):
+    """When CAST_DATA_DIR is set, _cast_data_dir() returns Path(data_dir)."""
+    from cast.cli import _cast_data_dir
+
+    with patch.dict("os.environ", {"CAST_DATA_DIR": str(tmp_path)}):
+        result = _cast_data_dir()
+
+    assert result == tmp_path

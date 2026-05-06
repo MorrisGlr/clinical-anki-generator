@@ -463,3 +463,21 @@ def test_copy_media_returns_400_when_media_folder_missing(client, tmp_path):
         assert "not found" in resp.get_json()["error"]
     finally:
         _RUNS.pop(run_id, None)
+
+
+def test_create_app_frozen_bundle(tmp_path):
+    """Frozen bundle path: create_app() uses sys._MEIPASS-based template/static folders."""
+    fake_meipass = tmp_path / "_MEIPASS"
+    templates_dir = fake_meipass / "cast" / "server" / "templates"
+    static_dir = fake_meipass / "cast" / "server" / "static"
+    templates_dir.mkdir(parents=True)
+    static_dir.mkdir(parents=True)
+
+    import cast.server.app as server_module
+
+    with patch.object(server_module.sys, "frozen", True, create=True), \
+         patch.object(server_module.sys, "_MEIPASS", str(fake_meipass), create=True):
+        application = create_app(output_dir=tmp_path / "gen_anki")
+
+    assert str(fake_meipass / "cast" / "server" / "templates") in application.template_folder
+    assert str(fake_meipass / "cast" / "server" / "static") in application.static_folder

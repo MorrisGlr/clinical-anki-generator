@@ -86,3 +86,11 @@ def test_fallback_fixture_correct_answer_extracted_via_aria(caplog):
     assert "antihypertensives" in pq.correct_answer
     assert "Fallback selector matched" in caplog.text
     assert "apgo:correct_answer" in caplog.text
+
+
+def test_parse_single_word_question_no_leading_number():
+    """IndexError branch: question text has no space so split fails silently."""
+    html = '<div id="questionText">SingleWord</div>'
+    results = parse(html, "test.html")
+    assert len(results) == 1
+    assert results[0].question == "SingleWord"

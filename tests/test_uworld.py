@@ -103,3 +103,31 @@ def test_fallback_fixture_correct_answer_extracted(caplog):
     assert "Subarachnoid hemorrhage" in pq.correct_answer
     assert "Fallback selector matched" in caplog.text
     assert "uworld:correct_answer" in caplog.text
+
+
+def test_parse_single_word_question_no_leading_number(capsys):
+    """IndexError branch: question text has no space so split(" ", 1) fails."""
+    html = '<div id="questionText">SingleWord</div>'
+    results = parse(html, "test.html")
+    assert len(results) == 1
+    # The warning is printed (not logged); capsys captures it
+    captured = capsys.readouterr()
+    assert "Warning" in captured.out
+    assert results[0].question == "SingleWord"
+
+
+def test_parse_collects_images_from_files_dir(tmp_path):
+    """image_paths is populated when a *_files/ companion dir contains images."""
+    html_file = tmp_path / "question.html"
+    files_dir = tmp_path / "question_files"
+    files_dir.mkdir()
+    (files_dir / "diagram.png").write_bytes(b"\x89PNG")
+    (files_dir / "notes.txt").write_text("ignore me", encoding="utf-8")
+
+    html_file.write_text(
+        '<div class="question-zn9y2">1 What is shown?</div>', encoding="utf-8"
+    )
+    results = parse(html_file.read_text(encoding="utf-8"), str(html_file))
+
+    assert len(results) == 1
+    assert any("diagram.png" in p for p in results[0].image_paths)
